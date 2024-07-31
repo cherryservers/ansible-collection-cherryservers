@@ -78,7 +78,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
 
         Returns:
 
-            Any: The response payload.
+            Any: The response payload. A Python object created by json.loads().
 
         Raises:
 
