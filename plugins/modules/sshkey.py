@@ -89,7 +89,6 @@ cherryservers_sshkey:
     }
 """
 
-# from ..module_utils import client
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 
