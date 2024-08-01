@@ -6,4 +6,4 @@
 This project is in early development.
 Planned supported versions:
 - ansible-core >= 2.14
-- python >= 3.7
+- python >= 3.9
