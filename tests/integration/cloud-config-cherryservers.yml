@@ -1,0 +1,2 @@
+---
+cherryservers_api_key: ${CHERRY_AUTH_KEY}
