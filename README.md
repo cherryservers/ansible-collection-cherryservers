@@ -4,3 +4,6 @@
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 This project is in early development.
+Planned supported versions:
+- ansible-core >= 2.14
+- python >= 3.7

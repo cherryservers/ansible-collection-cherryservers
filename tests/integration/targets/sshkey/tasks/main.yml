@@ -1,0 +1,11 @@
+---
+- name: test create ssh key
+  local.cherryservers.sshkey:
+    label: "{{ key_label }}"
+    public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
+    auth_token: "{{ api_key }}"
+  register: result
+- name: verify create ssh key
+  ansible.builtin.assert:
+    that:
+      - result is changed

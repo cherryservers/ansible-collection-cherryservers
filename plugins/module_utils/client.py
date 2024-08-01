@@ -33,6 +33,9 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
     Upon instantiation this class will attempt to validate
     the provided Cherry Servers authentication token,
     and will fail the ansible module if unable to do so.
+    This token can be set via the CHERRY_AUTH_TOKEN and
+    CHERRY_AUTH_KEY environment variables or passed as
+    an ansible module parameter.
 
     Methods:
 
@@ -49,7 +52,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         )
         self._auth_token = self._module.params.get("auth_token", None)
         if self._auth_token is None:
-            self._module.fail_json(msg="auth_token is required.")
+            self._module.fail_json(msg="auth_token not provided.")
 
         self._headers = {
             "Authorization": f"Bearer {self._auth_token}",

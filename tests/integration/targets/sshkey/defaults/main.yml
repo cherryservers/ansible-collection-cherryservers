@@ -1,0 +1,2 @@
+key_label: ansible-test-key
+fake_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com
