@@ -36,11 +36,13 @@ options:
             - The public SSH key.
             - Required if the key doesn't exist.
         type: str
+        required: true
     label:
         description:
             - The label of the SSH key.
         aliases: [name]
         type: str
+        required: true
 # Specify this value according to your collection
 # in format of namespace.collection.doc_fragment_name
 # extends_documentation_fragment:
@@ -62,16 +64,6 @@ EXAMPLES = r"""
 
 RETURN = r"""
 # Cherry Servers API reference: https://api.cherryservers.com/doc/#tag/SshKeys
-original_message:
-    description: The original name param that was passed in.
-    type: str
-    returned: always
-    sample: 'hello world'
-message:
-    description: The output message that the test module generates.
-    type: str
-    returned: 
-    sample: 'goodbye'
 cherryservers_sshkey:
     description: SSH key data.
     returned: when C(state=present)
