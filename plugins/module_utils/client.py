@@ -10,21 +10,13 @@ Classes:
 
     CherryServersClient
 
-Exceptions:
-
-    ClientError
-
 """
 
 import json
-from typing import Any
+from typing import Any, Tuple
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.urls import fetch_url
-
-
-class ClientError(Exception):
-    """A client related error."""
 
 
 class CherryServersClient:  # pylint: disable=too-few-public-methods
@@ -62,16 +54,16 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         self._validate_auth_token()
 
     def _validate_auth_token(self):
-        try:
-            self.send_request("GET", "user")
-        except ClientError:
+        status, _2 = self.send_request("GET", "user")
+        if status != 200:
             self._module.fail_json(msg="Failed to validate auth token.")
 
-    def send_request(self, method: str, url: str, **kwargs) -> Any:
+    def send_request(self, method: str, url: str, **kwargs) -> Tuple[int, Any]:
         """Send request to Cherry Servers API.
 
-        This sends a request to Cherry Servers API and returns the response payload upon success.
-        If an API error occurs, a ClientError exception is raised with the error payload.
+        This sends a request to Cherry Servers API.
+        On success, returns the status code of the response along with response object.
+        On failure, returns the status code of the response along with the error message.
 
         Args:
 
@@ -81,11 +73,9 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
 
         Returns:
 
-            Any: The response payload. A Python object created by json.loads().
+            Tuple[int, Any]: The status code of the response along with response object (or
+            error message on failure).
 
-        Raises:
-
-            ClientError: The API server responded with an error.
         """
         url = self._base_url + url
         data = json.dumps(kwargs)
@@ -94,8 +84,9 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
             self._module, url, method=method, headers=self._headers, data=data
         )
 
-        body = resp.read()
         if info["status"] >= 400:
-            raise ClientError(json.loads(info["body"]))
+            body = json.loads(info["body"])["message"]
+        else:
+            body = json.loads(resp.read())
 
-        return json.loads(body)
+        return info["status"], body
