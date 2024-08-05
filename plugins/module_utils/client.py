@@ -84,9 +84,10 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
             self._module, url, method=method, headers=self._headers, data=data
         )
 
+        body = None
         if info["status"] >= 400:
             body = json.loads(info["body"])["message"]
-        else:
+        elif method != "DELETE":
             body = json.loads(resp.read())
 
         return info["status"], body

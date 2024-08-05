@@ -22,12 +22,16 @@ options:
     auth_token:
         description:
             - API authentication token for Cherry Servers public API.
-            - Can be supplied via CHERRY_AUTH_TOKEN and CHERRY_AUTH_KEY environment variables.
+            - Can be supplied via E(CHERRY_AUTH_TOKEN) and E(CHERRY_AUTH_KEY) environment variables.
             - See https://portal.cherryservers.com/settings/api-keys for more information.
         type: str
     state:
         description:
             - The state of the SSH key.
+            - If V(present) an attempt to find the key will be made.
+            - If multiple keys matching the provided options are found, the module will fail.
+            - If the key doesn't exist, O(label) and O(public_key) are required, all other options are ignored.
+            - If V(absent) and multiple options are provided, all keys matching any of the options will be removed.
         default: present
         choices: ['absent', 'present']
         type: str
@@ -39,12 +43,20 @@ options:
     label:
         description:
             - The label of the SSH key.
+            - Required if the key doesn't exist.
         aliases: [name]
         type: str
     id:
         description:
             - The ID of the SSH key.
+        type: int
+    fingerprint:
+        description:
+            - The fingerprint of the SSH key.
         type: str
+
+notes:
+  - This module supports check mode.
 # Specify this value according to your collection
 # in format of namespace.collection.doc_fragment_name
 # extends_documentation_fragment:
@@ -65,7 +77,6 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
-# Cherry Servers API reference: https://api.cherryservers.com/doc/#tag/SshKeys
 cherryservers_sshkey:
     description: SSH key data.
     returned: when C(state=present)
@@ -85,6 +96,7 @@ cherryservers_sshkey:
 
 from ansible.module_utils import basic as utils
 from ..module_utils import client
+from typing import List
 
 
 def run_module():
@@ -108,34 +120,69 @@ def run_module():
         "public_key": {
             "type": "str",
         },
-        "id": {"type": "str"},
+        "id": {"type": "int"},
+        "fingerprint": {"type": "str"},
     }
 
-    module = utils.AnsibleModule(argument_spec=module_args, supports_check_mode=True)
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+        required_if=[
+            ("state", "present", ("label", "public_key"), True),
+        ],
+    )
+
     api_client = client.CherryServersClient(module)
 
     if module.params["state"] == "present":
-        create_key(api_client, module)
+        existing_keys = get_keys(api_client, module)
+        if len(existing_keys) > 1:
+            module.fail_json(msg="More than one SSH key matches the given parameters.")
+        if existing_keys:
+            update_key(api_client, module)
+        else:
+            create_key(api_client, module)
     elif module.params["state"] == "absent":
-        delete_key(api_client, module)
+        delete_keys(api_client, module)
 
 
-def check_key_exists(
+def get_keys(
     api_client: client.CherryServersClient, module: utils.AnsibleModule
-) -> bool:
-    """Check if the SSH key already exists."""
-    status, _2 = api_client.send_request(
+) -> List[int]:
+    """Search for and retrieve SSH keys that match the provided criteria.
+
+    Returns:
+
+            List[int]: IDs of SSH keys that match the modules argument_spec parameters.
+
+    """
+    params = module.params
+
+    _1, resp = api_client.send_request(
         "GET",
-        f"ssh-keys/{module.params['key_id']}",
+        "ssh-keys",
     )
 
-    if status == 200:
-        return True
-    return False
+    matching_ids = []
+
+    for sshkey in resp:
+        if (
+            any(sshkey[k] == params[k] for k in ["id", "fingerprint", "label"])
+            or sshkey["key"] == params["public_key"]
+        ):
+            matching_ids.append(sshkey["id"])
+
+    return matching_ids
 
 
 def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModule):
     """Create a new SSH key."""
+    if module.params["label"] is None or module.params["public_key"] is None:
+        module.fail_json("Label and public key are required for creating SSH keys.")
+
+    if module.check_mode:
+        module.exit_json(changed=True)
+
     status, resp = api_client.send_request(
         "POST",
         "ssh-keys",
@@ -147,15 +194,50 @@ def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModu
     module.exit_json(changed=True, cherryservers_sshkey=resp)
 
 
-def delete_key(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Delete the SSH key."""
+def update_key(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Update an existing SSH key."""
+    if module.params["label"] is None and module.params["public_key"] is None:
+        module.exit_json(changed=False)
+
+    if module.check_mode:
+        module.exit_json(changed=True)
+
     status, resp = api_client.send_request(
-        "DEL",
-        f"ssh-keys/{module.params['key_id']}",
+        "PUT",
+        "ssh-keys",
+        label=module.params["label"],
+        key=module.params["public_key"],
     )
-    if status != 204:
-        module.fail_json(msg=f"Failed to delete SSH key: {resp}")
+    if status != 201:
+        module.fail_json(msg=f"Failed to update SSH key: {resp}")
     module.exit_json(changed=True, cherryservers_sshkey=resp)
+
+
+def delete_keys(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Delete any SSH keys that match the modules argument_spec parameters."""
+    if all(
+        module.params[k] is None for k in ["id", "fingerprint", "label", "public_key"]
+    ):
+        module.exit_json(changed=False)
+
+    ssh_ids_to_delete = get_keys(api_client, module)
+
+    if module.check_mode and ssh_ids_to_delete:
+        module.exit_json(changed=True)
+    elif not ssh_ids_to_delete:
+        module.exit_json(changed=False)
+
+    failures = []
+    for key_id in ssh_ids_to_delete:
+        status, _2 = api_client.send_request(
+            "DELETE",
+            f"ssh-keys/{key_id}",
+        )
+        if status != 204:
+            failures.append(f"Failed to delete SSH key: {key_id}")
+    if failures:
+        module.fail_json(changed=True, msg="\n".join(failures))
+    module.exit_json(changed=True)
 
 
 def main():
