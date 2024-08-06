@@ -1,0 +1,155 @@
+---
+- name: create first ssh key
+  local.cherryservers.sshkey:
+    label: "{{ key_label_1 }}"
+    public_key: "{{ fake_public_key_1 }}"
+    auth_token: "{{ cherryservers_api_key }}"
+  register: first_key
+- name: verify create first ssh key
+  ansible.builtin.assert:
+    that:
+      - first_key is changed
+
+- name: create second ssh key
+  local.cherryservers.sshkey:
+    label: "{{ key_label_2 }}"
+    public_key: "{{ fake_public_key_2 }}"
+    auth_token: "{{ cherryservers_api_key }}"
+  register: second_key
+- name: verify create second ssh key
+  ansible.builtin.assert:
+    that:
+      - second_key is changed
+
+- name: test no options info gathering
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+  register: result
+- name: verify no options info gathering
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count >= 2
+      - result is not changed
+
+- name: test no options info gathering with check mode
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+  check_mode: true
+  register: result
+- name: verify no options info gathering
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count >= 2
+      - result is not changed
+
+- name: test gather key by id
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    id: "{{ first_key.cherryservers_sshkey.id }}"
+  register: result
+- name: verify gather key by id
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 1
+      - result is not changed
+
+- name: test gather key by id wrong
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    id: "1234"
+  register: result
+- name: verify gather key by id wrong
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 0
+      - result is not changed
+
+- name: test gather key by fingerprint
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    fingerprint: "{{ first_key.cherryservers_sshkey.fingerprint }}"
+  register: result
+- name: verify gather key by fingerprint
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 1
+      - result is not changed
+
+- name: test gather key by fingerprint wrong
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    fingerprint: "{{ first_key.cherryservers_sshkey.fingerprint }}bad"
+  register: result
+- name: verify gather key by fingerprint wrong
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 0
+      - result is not changed
+
+- name: test gather key by label
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    label: "{{ first_key.cherryservers_sshkey.label }}"
+  register: result
+- name: verify gather key by label
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 1
+      - result is not changed
+
+- name: test gather key by label wrong
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    label: "{{ first_key.cherryservers_sshkey.label }}bad"
+  register: result
+- name: verify gather key by label wrong
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 0
+      - result is not changed
+
+- name: test gather key by public_key
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    public_key: "{{ first_key.cherryservers_sshkey.key }}"
+  register: result
+- name: verify gather key by public_key
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 1
+      - result is not changed
+
+- name: test gather key by public_key wrong
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    public_key: "{{ first_key.cherryservers_sshkey.key }}bad"
+  register: result
+- name: verify gather key by public_key wrong
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 0
+      - result is not changed
+
+- name: test gather multiple option keys
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ cherryservers_api_key }}"
+    id: "{{ first_key.cherryservers_sshkey.id }}"
+    fingerprint: "{{ second_key.cherryservers_sshkey.fingerprint }}"
+  register: result
+- name: verify gather multiple option keys
+  ansible.builtin.assert:
+    that:
+      - result.cherryservers_sshkeys | list | count == 2
+      - result is not changed
+
+- name: delete ssh keys
+  local.cherryservers.sshkey:
+    label: "{{ key_label_1 }}"
+    public_key: "{{ fake_public_key_2 }}"
+    state: "absent"
+    auth_token: "{{ cherryservers_api_key }}"
+  register: result
+- name: verify delete ssh keys
+  ansible.builtin.assert:
+    that:
+      - result is changed
