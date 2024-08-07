@@ -2,3 +2,4 @@ key_label_1: ansible-test-key_1
 key_label_2: ansible-test-key_2
 fake_public_key_1: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFa0 example@example.com
 fake_public_key_2: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFb0 example@example.com
+fake_public_key_updated: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFc0 example@example.com

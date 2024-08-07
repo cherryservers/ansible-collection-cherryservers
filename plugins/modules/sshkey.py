@@ -84,7 +84,7 @@ EXAMPLES = r"""
 RETURN = r"""
 cherryservers_sshkey:
     description: SSH key data.
-    returned: when O(state=present)
+    returned: when O(state=present) and not in check mode
     type: dict
     contains:
         created:
