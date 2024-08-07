@@ -1,173 +1,272 @@
 ---
-- name: test create ssh key missing parameter
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: first_sshkey
-  ignore_errors: true
-- name: verify create ssh key missing parameter
-  ansible.builtin.assert:
-    that:
-      - first_sshkey is failed
+- name: Run tests
+  block:
+    - name: test create ssh key missing parameter
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: first_sshkey
+      ignore_errors: true
+    - name: verify create ssh key missing parameter
+      ansible.builtin.assert:
+        that:
+          - first_sshkey is failed
 
-- name: test create ssh key with check mode
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: first_sshkey
-  check_mode: true
-- name: verify create ssh key with check mode
-  ansible.builtin.assert:
-    that:
-      - first_sshkey is changed
+    - name: test create ssh key with check mode
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: first_sshkey
+      check_mode: true
+    - name: verify create ssh key with check mode
+      ansible.builtin.assert:
+        that:
+          - first_sshkey is changed
 
-- name: test that no ssh key actually created
-  local.cherryservers.sshkey_info:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify that no ssh key actually created
-  ansible.builtin.assert:
-    that:
-      - result.cherryservers_sshkeys | list | count == 0
+    - name: test that no ssh key actually created
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify that no ssh key actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 0
 
-- name: test create ssh key
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: first_sshkey
-- name: verify create ssh key
-  ansible.builtin.assert:
-    that:
-      - first_sshkey is changed
+    - name: test create ssh key
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: first_sshkey
+    - name: verify create ssh key
+      ansible.builtin.assert:
+        that:
+          - first_sshkey is changed
 
-- name: test ssh key actually created
-  local.cherryservers.sshkey_info:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify ssh key actually created
-  ansible.builtin.assert:
-    that:
-      - result.cherryservers_sshkeys | list | count == 1
+    - name: test ssh key actually created
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify ssh key actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 1
 
-- name: test key creation idempotency with check mode
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-  check_mode: true
-- name: verify key creation idempotency with check mode
-  ansible.builtin.assert:
-    that:
-      - result is not changed
+    - name: test key creation idempotency with check mode
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      check_mode: true
+    - name: verify key creation idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
 
-- name: test key creation idempotency
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_1 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify key creation idempotency
-  ansible.builtin.assert:
-    that:
-      - result is not changed
+    - name: test key creation idempotency
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_1 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify key creation idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
 
-- name: create second ssh key
-  local.cherryservers.sshkey:
-    label: "{{ key_label_2 }}"
-    public_key: "{{ fake_public_key_2 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: second_sshkey
-- name: verify second ssh key
-  ansible.builtin.assert:
-    that:
-      - second_sshkey is changed
+    - name: create second ssh key
+      local.cherryservers.sshkey:
+        label: "{{ key_label_2 }}"
+        public_key: "{{ fake_public_key_2 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: second_sshkey
+    - name: verify second ssh key
+      ansible.builtin.assert:
+        that:
+          - second_sshkey is changed
 
-- name: test fail cleanly on update ambiguity
-  local.cherryservers.sshkey:
-    label: "{{ key_label_1 }}"
-    public_key: "{{ fake_public_key_2 }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify fail cleanly on update ambiguity
-  ansible.builtin.assert:
-    that:
-      - result is failed
+    - name: test fail cleanly on update ambiguity
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}"
+        public_key: "{{ fake_public_key_2 }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      ignore_errors: true
+    - name: verify fail cleanly on update ambiguity
+      ansible.builtin.assert:
+        that:
+          - result is failed
 
-- name: test update ssh key with check mode
-  local.cherryservers.sshkey:
-    id: "{{ first_sshkey.cherryservers_sshkey.id }}"
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-    check_mode: true
-  register: result
-- name: verify update ssh key with check mode
-  ansible.builtin.assert:
-    that:
-      - result is changed
+    - name: test update ssh key with check mode
+      local.cherryservers.sshkey:
+        id: "{{ first_sshkey.cherryservers_sshkey.id }}"
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      check_mode: true
+      register: result
+    - name: verify update ssh key with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
 
-- name: test no update actually happened
-  local.cherryservers.sshkey_info:
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify no update actually happened
-  ansible.builtin.assert:
-    that:
-      - result.cherryservers_sshkeys | list | count == 0
+    - name: test no update actually happened
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify no update actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 0
 
-- name: test update ssh key
-  local.cherryservers.sshkey:
-    id: "{{ first_sshkey.cherryservers_sshkey.id }}"
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify update ssh key
-  ansible.builtin.assert:
-    that:
-      - result is changed
+    - name: test update ssh key
+      local.cherryservers.sshkey:
+        id: "{{ first_sshkey.cherryservers_sshkey.id }}"
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify update ssh key
+      ansible.builtin.assert:
+        that:
+          - result is changed
 
-- name: test update actually happened
-  local.cherryservers.sshkey_info:
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify update actually happened
-  ansible.builtin.assert:
-    that:
-      - result.cherryservers_sshkeys | list | count == 1
+    - name: test update actually happened
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify update actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 1
 
-- name: test key update idempotency with check mode
-  local.cherryservers.sshkey:
-    id: "{{ first_sshkey.cherryservers_sshkey.id }}"
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-  check_mode: true
-- name: verify key update idempotency with check mode
-  ansible.builtin.assert:
-    that:
-      - result is not changed
+    - name: test key update idempotency with check mode
+      local.cherryservers.sshkey:
+        id: "{{ first_sshkey.cherryservers_sshkey.id }}"
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      check_mode: true
+    - name: verify key update idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
 
-- name: test key update idempotency
-  local.cherryservers.sshkey:
-    id: "{{ first_sshkey.cherryservers_sshkey.id }}"
-    label: "{{ key_label_1 }}_updated"
-    public_key: "{{ fake_public_key_updated }}"
-    auth_token: "{{ cherryservers_api_key }}"
-  register: result
-- name: verify key update idempotency
-  ansible.builtin.assert:
-    that:
-      - result is not changed
+    - name: test key update idempotency
+      local.cherryservers.sshkey:
+        id: "{{ first_sshkey.cherryservers_sshkey.id }}"
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify key update idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test delete keys no params
+      local.cherryservers.sshkey:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify delete keys no params
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test delete ssh key with check mode
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+      check_mode: true
+    - name: verify delete ssh key with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test that no ssh key actually deleted
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify that no ssh key actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 1
+
+    - name: test delete ssh key
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify delete ssh key
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test ssh key actually deleted
+      local.cherryservers.sshkey_info:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify ssh key actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_sshkeys | list | count == 0
+
+    - name: test key delete idempotency with check mode
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+      check_mode: true
+    - name: verify key delete idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test key delete idempotency
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify key delete idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+  always:
+    - name: delete test keys
+      local.cherryservers.sshkey:
+        label: "{{ key_label_1 }}_updated"
+        public_key: "{{ fake_public_key_2 }}"
+        id: "{{ first_sshkey.cherryservers_sshkey.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify delete test keys
+      ansible.builtin.assert:
+        that:
+          - result is changed
