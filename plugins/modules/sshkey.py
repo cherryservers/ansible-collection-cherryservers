@@ -127,6 +127,7 @@ cherryservers_sshkey:
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
+from ..module_utils import constants
 
 
 def run_module():
@@ -225,6 +226,7 @@ def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModu
     status, resp = api_client.send_request(
         "POST",
         "ssh-keys",
+        constants.SSH_TIMEOUT,
         label=module.params["label"],
         key=module.params["public_key"],
     )
@@ -246,6 +248,7 @@ def update_key(
     status, resp = api_client.send_request(
         "PUT",
         f"ssh-keys/{key_id}",
+        constants.SSH_TIMEOUT,
         label=module.params["label"],
         key=module.params["public_key"],
     )
@@ -274,6 +277,7 @@ def delete_keys(api_client: client.CherryServersClient, module: utils.AnsibleMod
         status, _2 = api_client.send_request(
             "DELETE",
             f"ssh-keys/{key_id}",
+            constants.SSH_TIMEOUT,
         )
         if status != 204:
             failures.append(f"Failed to delete SSH key: {key_id}")

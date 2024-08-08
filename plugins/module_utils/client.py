@@ -31,7 +31,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
 
     Methods:
 
-        send_request(method: str, url: str, **kwargs) -> Any
+        send_request(method: str, url: str, timeout: int, **kwargs) -> Any
 
     """
 
@@ -54,11 +54,13 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         self._validate_auth_token()
 
     def _validate_auth_token(self):
-        status, _2 = self.send_request("GET", "user")
+        status, _2 = self.send_request("GET", "user", 10)
         if status != 200:
             self._module.fail_json(msg="Failed to validate auth token.")
 
-    def send_request(self, method: str, url: str, **kwargs) -> Tuple[int, Any]:
+    def send_request(
+        self, method: str, url: str, timeout: int, **kwargs
+    ) -> Tuple[int, Any]:
         """Send request to Cherry Servers API.
 
         This sends a request to Cherry Servers API.
@@ -69,6 +71,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
 
             method (str): The HTTP method to use.
             url (str): The URL to send the request to. Will be appended to the base URL.
+            timeout (int): The timeout in seconds.
             kwargs (dict): The keyword arguments to pass to the requests.
 
         Returns:
@@ -81,12 +84,19 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         data = json.dumps(kwargs)
 
         resp, info = fetch_url(
-            self._module, url, method=method, headers=self._headers, data=data
+            self._module,
+            url,
+            method=method,
+            headers=self._headers,
+            data=data,
+            timeout=timeout,
         )
 
         body = None
         if info["status"] >= 400:
             body = json.loads(info["body"])["message"]
+        elif not 200 <= info["status"] < 300:
+            self._module.fail_json(msg=info["msg"])
         elif method != "DELETE":
             body = json.loads(resp.read())
 

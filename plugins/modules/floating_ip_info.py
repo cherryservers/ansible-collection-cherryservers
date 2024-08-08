@@ -134,6 +134,7 @@ cherryservers_floating_ips:
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
+from ..module_utils import constants
 from typing import List
 
 
@@ -163,12 +164,14 @@ def get_single_ip(api_client: client, module: utils.AnsibleModule) -> List[dict]
     This IP is returned as a single dictionary entry in a list, for easier
     compatibility with multiple IP returning functionality.
     """
-    status, resp = api_client.send_request("GET", f"ips/{module.params['id']}")
+    status, resp = api_client.send_request(
+        "GET", f"ips/{module.params['id']}", constants.IP_TIMEOUT
+    )
 
     ip = []
 
     if status == 200 and resp["type"] == "floating-ip":
-        trim_resource(resp)
+        common.trim_ip(resp)
         ip.append(resp)
     elif status != 404:
         module.fail_json(msg=f"Unexpected client error: {resp}")
@@ -182,63 +185,23 @@ def get_multiple_ips(api_client: client, module: utils.AnsibleModule) -> List[di
 
     if params["available_only"]:
         status, resp = api_client.send_request(
-            "GET", f"projects/{params['project_id']}/available_ips"
+            "GET",
+            f"projects/{params['project_id']}/available_ips",
+            constants.IP_TIMEOUT,
         )
     else:
         status, resp = api_client.send_request(
-            "GET", f"projects/{params['project_id']}/ips"
+            "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
         )
 
     ips = []
 
-    # We go through all the project IPs and add all the ones whose
-    # values match the user provided module parameters. If the parameter
-    # is None, we consider it matching, since the user did not provide it.
-
     if status == 200:
-        for ip in resp:
-            if ip["type"] != "floating-ip":
-                continue
-            if (
-                all(params[k] is None or params[k] == ip[k] for k in ["id", "address"])
-                and (
-                    params["region_slug"] is None
-                    or params["region_slug"] == ip["region"]["slug"]
-                )
-                and (
-                    params["tags"] is None
-                    or all(
-                        params["tags"][t] == ip["tags"].get(t) for t in params["tags"]
-                    )
-                )
-            ):
-                trim_resource(ip)
-                ips.append(ip)
+        ips = common.filter_fips(module.params, resp)
     elif status != 404:
         module.fail_json(msg=f"Unexpected client error: {resp}")
 
     return ips
-
-
-def trim_resource(fip: dict):
-    """Remove excess fields from the floating IP resource."""
-    to_trim = (
-        "address_family",
-        "href",
-        "project",
-        "gateway",
-        "type",
-        "routed_to",
-        "targeted_to",
-        "region",
-    )
-    target_id = fip.get("targeted_to", {}).get("id", 0)
-    region_slug = fip.get("region", {}).get("slug")
-    for t in to_trim:
-        fip.pop(t, None)
-
-    fip["targeted_to"] = target_id
-    fip["region_slug"] = region_slug
 
 
 def get_module_args() -> dict:
