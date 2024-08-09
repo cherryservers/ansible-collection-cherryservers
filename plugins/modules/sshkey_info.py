@@ -18,7 +18,7 @@ version_added: "0.1.0"
 
 description:
   - Gather information about your Cherry Servers SSH keys.
-  - Returns all SSH keys matching any of the options you provide.
+  - Returns SSH keys that match all of your provided options.
   - If you provide no options, returns all your SSH keys.
 
 options:
@@ -103,6 +103,7 @@ cherryservers_sshkeys:
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
+from ..module_utils import constants
 
 
 def run_module():
@@ -115,19 +116,24 @@ def run_module():
     )
 
     api_client = client.CherryServersClient(module)
-    params = module.params
 
-    if all(params[k] is None for k in ["id", "label", "fingerprint", "public_key"]):
-        status, resp = api_client.send_request(
-            "GET",
-            "ssh-keys",
-        )
-        if status != 200:
-            module.fail_json(msg=f"Failed to get SSH keys: {resp}")
-    else:
-        resp = common.get_keys(api_client, module)
+    status, resp = api_client.send_request(
+        "GET",
+        "ssh-keys",
+        constants.SSH_TIMEOUT,
+    )
+    if status != 200:
+        module.fail_json(msg=f"Failed to get SSH keys: {resp}")
 
-    # We delete 'user' from the dictionary because of an API peculiarity:
+    temp_keys = []
+
+    for key in resp:
+        if sshkey_filter(module.params, key):
+            temp_keys.append(key)
+
+    resp = temp_keys
+
+    # We delete 'user' from the response because of an API peculiarity:
     # each returned SSH key contains a `user` field, that
     # contains all the SSH keys the user has. This results in significant duplication.
 
@@ -156,6 +162,17 @@ def get_module_args() -> dict:
     )
 
     return module_args
+
+
+def sshkey_filter(module_params: dict, current_state: dict) -> bool:
+    """Check if the key should be included in the response."""
+    return all(
+        module_params[k_params] is None
+        or current_state[k_state] == module_params[k_params]
+        for (k_state, k_params) in zip(
+            constants.SSH_RESOURCE_KEYS, constants.SSH_MODULE_PARAM_KEYS
+        )
+    )
 
 
 def main():

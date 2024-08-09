@@ -18,7 +18,7 @@ version_added: "0.1.0"
 
 description:
   - Gather information about your Cherry Servers floating IPs.
-  - Returns all floating IPs that match all your provided options in the given project.
+  - Returns floating IPs that match all your provided options in the given project.
   - If you don't provide a project, only the IP ID is checked for a match.
 
 options:
@@ -222,6 +222,42 @@ def get_module_args() -> dict:
     )
 
     return module_args
+
+
+def filter_fips(module_params: dict, fips: Sequence[dict]) -> List[dict]:
+    """Filter floating IPs according to provided module parameters.
+
+    We go through all the project IPs and add all the ones whose
+    values match the user provided module parameters. If the parameter
+    is None, we consider it matching, since the user did not provide it.
+
+    """
+    result = []
+
+    for ip in fips:
+        if ip["type"] != "floating-ip":
+            continue
+        if (
+            all(
+                module_params[k] is None or module_params[k] == ip[k]
+                for k in ["id", "address"]
+            )
+            and (
+                module_params["region_slug"] is None
+                or module_params["region_slug"] == ip["region"]["slug"]
+            )
+            and (
+                module_params["tags"] is None
+                or all(
+                    module_params["tags"][t] == ip["tags"].get(t)
+                    for t in module_params["tags"]
+                )
+            )
+        ):
+            common.trim_ip(ip)
+            result.append(ip)
+
+    return result
 
 
 def main():

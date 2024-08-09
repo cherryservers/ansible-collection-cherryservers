@@ -12,7 +12,8 @@ Functions:
     get_keys(api_client: client.CherryServersClient, module: utils.AnsibleModule) -> List[dict]
 
 """
-from typing import List
+from collections.abc import Sequence, Callable
+from typing import List, Optional
 
 from . import client
 from . import constants
@@ -30,68 +31,39 @@ def get_base_argument_spec() -> dict:
     }
 
 
-def get_keys(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule
-) -> List[dict]:
-    """Search for and retrieve SSH keys that match the provided criteria.
-
-    Returns:
-
-            List[dict]: SSH keys that match the modules argument_spec parameters.
-
-    """
+def find_resource_unique(
+    api_client: client.CherryServersClient,
+    module: utils.AnsibleModule,
+    keys: Sequence[Sequence[str]],
+    url: str,
+    timeout: int,
+) -> Optional[dict]:
+    """TODO"""
     params = module.params
 
-    status, resp = api_client.send_request("GET", "ssh-keys", constants.SSH_TIMEOUT)
+    if len(keys) != 2 or len(keys[0]) != len(keys[1]):
+        module.fail_json(msg=f"Invalid key sequence: {keys}")
+
+    status, resp = api_client.send_request("GET", url, timeout)
     if status != 200:
-        module.fail_json(msg=f"Failed to get SSH keys: {resp}")
+        module.fail_json(msg=f"Failed to get resources: {resp}")
 
-    matching_keys = []
+    matching_resources = []
 
-    for sshkey in resp:
-        if (
-            any(sshkey[k] == params[k] for k in ["id", "fingerprint", "label"])
-            or sshkey["key"] == params["public_key"]
+    for resource in resp:
+        if any(
+            resource[k_resource] == params[k_param]
+            for (k_resource, k_param) in zip(keys[0], keys[1])
         ):
-            matching_keys.append(sshkey)
+            matching_resources.append(resource)
 
-    return matching_keys
+    if len(matching_resources) > 1:
+        module.fail_json(msg=f"Multiple matching resources found: {matching_resources}")
 
+    if not matching_resources:
+        return None
 
-def filter_fips(module_params: dict, fips: List[dict]) -> List[dict]:
-    """Filter floating IPs according to provided module parameters.
-
-    We go through all the project IPs and add all the ones whose
-    values match the user provided module parameters. If the parameter
-    is None, we consider it matching, since the user did not provide it.
-
-    """
-    result = []
-
-    for ip in fips:
-        if ip["type"] != "floating-ip":
-            continue
-        if (
-            all(
-                module_params[k] is None or module_params[k] == ip[k]
-                for k in ["id", "address"]
-            )
-            and (
-                module_params["region_slug"] is None
-                or module_params["region_slug"] == ip["region"]["slug"]
-            )
-            and (
-                module_params["tags"] is None
-                or all(
-                    module_params["tags"][t] == ip["tags"].get(t)
-                    for t in module_params["tags"]
-                )
-            )
-        ):
-            trim_ip(ip)
-            result.append(ip)
-
-    return result
+    return matching_resources[0]
 
 
 def trim_ip(ip: dict):

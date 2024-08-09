@@ -34,6 +34,7 @@
       ansible.builtin.assert:
         that:
           - result.cherryservers_sshkeys | list | count == 0
+          - result is not changed
 
     - name: test create ssh key
       local.cherryservers.sshkey:
@@ -126,6 +127,7 @@
       ansible.builtin.assert:
         that:
           - result.cherryservers_sshkeys | list | count == 0
+          - result is not changed
 
     - name: test update ssh key
       local.cherryservers.sshkey:
@@ -231,6 +233,7 @@
       ansible.builtin.assert:
         that:
           - result.cherryservers_sshkeys | list | count == 0
+          - result is not changed
 
     - name: test key delete idempotency with check mode
       local.cherryservers.sshkey:

@@ -3,3 +3,12 @@
 
 SSH_TIMEOUT = 10
 IP_TIMEOUT = 30
+
+# Order matters for key tuples!
+
+SSH_MODULE_PARAM_KEYS = ("id", "fingerprint", "label", "public_key")
+SSH_RESOURCE_KEYS = ("id", "fingerprint", "label", "key")
+
+SSH_MODULE_PARAM_IDENTIFYING_KEYS = ("id", "fingerprint", "label", "public_key")
+SSH_RESOURCE_IDENTIFYING_KEYS = ("id", "fingerprint", "label", "key")
+SSH_IDENTIFYING_KEYS = (SSH_RESOURCE_IDENTIFYING_KEYS, SSH_MODULE_PARAM_IDENTIFYING_KEYS)

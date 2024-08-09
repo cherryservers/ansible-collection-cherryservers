@@ -16,16 +16,17 @@ short_description: Create and manage SSH keys on Cherry Servers
 
 version_added: "0.1.0"
 
-description: Create, update and delete SSH keys on Cherry Servers.
+description: 
+    - Create, update and delete SSH keys on Cherry Servers.
+    - The module will attempt to find a key, that matches the specified options.
+    - If multiple matching keys are found, the module fails.
+    - Otherwise, depending on O(state) and if the key was found or not,
+    - it will be updated, deleted or a new key will be created.
 
 options:
     state:
         description:
             - The state of the SSH key.
-            - If V(present), the module attempts to find and update the key.
-            - If multiple keys matching the provided options are found, the module fails.
-            - If the key doesn't exist, O(label) and O(public_key) are required, all other options are ignored.
-            - If V(absent) and multiple options are provided, all keys matching any of the options are removed.
         default: present
         choices: ['absent', 'present']
         type: str
@@ -44,10 +45,12 @@ options:
     id:
         description:
             - The ID of the SSH key.
+            - Ignored if O(state=present) and SSH key doesn't exist.
         type: int
     fingerprint:
         description:
             - The fingerprint of the SSH key.
+            - Ignored if O(state=present) and SSH key doesn't exist.
         type: str
 
 
@@ -137,26 +140,32 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
-        required_if=[
-            ("state", "present", ("label", "public_key"), True),
-        ],
     )
 
     api_client = client.CherryServersClient(module)
+    key = common.find_resource_unique(
+        api_client,
+        module,
+        constants.SSH_IDENTIFYING_KEYS,
+        "ssh-keys",
+        constants.SSH_TIMEOUT,
+    )
 
     if module.params["state"] == "present":
-        existing_keys = common.get_keys(api_client, module)
-        if len(existing_keys) > 1:
-            module.fail_json(msg="More than one SSH key matches the given parameters.")
-        if existing_keys:
-            if check_param_state_diff(module.params, existing_keys[0]):
-                update_key(api_client, module, existing_keys[0]["id"])
-            else:
+        if key:
+            if check_param_state_diff(module.params, key):
+                update_key(api_client, module, key["id"])
+            elif module.check_mode:
                 module.exit_json(changed=False)
+            else:
+                module.exit_json(changed=False, cherryservers_sshkey=key)
         else:
             create_key(api_client, module)
     elif module.params["state"] == "absent":
-        delete_keys(api_client, module)
+        if key:
+            delete_key(api_client, module, key)
+        else:
+            module.exit_json(changed=False)
 
 
 def get_module_args() -> dict:
@@ -239,9 +248,6 @@ def update_key(
     api_client: client.CherryServersClient, module: utils.AnsibleModule, key_id: int
 ):
     """Update an existing SSH key."""
-    if module.params["label"] is None and module.params["public_key"] is None:
-        module.exit_json(changed=False)
-
     if module.check_mode:
         module.exit_json(changed=True)
 
@@ -257,32 +263,20 @@ def update_key(
     module.exit_json(changed=True, cherryservers_sshkey=resp)
 
 
-def delete_keys(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Delete any SSH keys that match the modules argument_spec parameters."""
-    if all(
-        module.params[k] is None for k in ["id", "fingerprint", "label", "public_key"]
-    ):
-        module.exit_json(changed=False)
-
-    ssh_keys_to_delete = common.get_keys(api_client, module)
-
-    if module.check_mode and ssh_keys_to_delete:
+def delete_key(api_client: client.CherryServersClient, module: utils.AnsibleModule, key: dict):
+    """Delete SSH key that matches the modules argument_spec parameters."""
+    if module.check_mode:
         module.exit_json(changed=True)
-    elif not ssh_keys_to_delete:
-        module.exit_json(changed=False)
 
-    failures = []
-    for key in ssh_keys_to_delete:
-        key_id = key["id"]
-        status, _2 = api_client.send_request(
-            "DELETE",
-            f"ssh-keys/{key_id}",
-            constants.SSH_TIMEOUT,
-        )
-        if status != 204:
-            failures.append(f"Failed to delete SSH key: {key_id}")
-    if failures:
-        module.fail_json(changed=True, msg="\n".join(failures))
+    key_id = key["id"]
+    status, _2 = api_client.send_request(
+        "DELETE",
+        f"ssh-keys/{key_id}",
+        constants.SSH_TIMEOUT,
+    )
+
+    if status != 204:
+        module.fail_json(f"Failed to delete SSH key: {key_id}")
     module.exit_json(changed=True)
 
 

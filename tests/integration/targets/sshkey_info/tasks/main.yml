@@ -132,22 +132,31 @@
           - result.cherryservers_sshkeys | list | count == 0
           - result is not changed
 
-    - name: test gather multiple option keys
+    - name: test gather multiple options
       local.cherryservers.sshkey_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ first_key.cherryservers_sshkey.id }}"
         fingerprint: "{{ second_key.cherryservers_sshkey.fingerprint }}"
       register: result
-    - name: verify gather multiple option keys
+    - name: verify gather multiple options
       ansible.builtin.assert:
         that:
-          - result.cherryservers_sshkeys | list | count == 2
+          - result.cherryservers_sshkeys | list | count == 0
           - result is not changed
-
   always:
-    - name: delete ssh keys
+    - name: delete first ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify delete ssh keys
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: delete second ssh key
+      local.cherryservers.sshkey:
         public_key: "{{ fake_public_key_2 }}"
         state: "absent"
         auth_token: "{{ cherryservers_api_key }}"
@@ -156,3 +165,4 @@
       ansible.builtin.assert:
         that:
           - result is changed
+

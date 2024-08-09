@@ -16,26 +16,30 @@ short_description: Create and manage floating IPs on Cherry Servers
 
 version_added: "0.1.0"
 
-description: Create, update and delete floating IPs on Cherry Servers.
+description:
+    - Create, update and delete floating IPs on Cherry Servers.
+    - The module will attempt to find a floating IP, that matches the specified options.
+    - If multiple matching IPs are found, the module fails.
+    - Otherwise, depending on O(state) and if the IP was found or not,
+    - it will be updated, deleted or a new floating IP will be created.
 
 options:
     state:
         description:
             - The state of the floating IP.
-            - If V(absent), all floating IPs that match all of the provided options will be deleted.
         choices: ['absent', 'present']
         type: str
         default: present
     id:
         description:
             - ID of the floating IP.
-            - Ignored if O(state=present) floating IP doesn't exist.
+            - Ignored if O(state=present) and floating IP doesn't exist.
             - Required if O(state=absent) and O(project_id) is not provided.
         type: str
     address:
         description:
             - Address of the floating IP.
-            - Ignored if O(state=present) floating IP doesn't exist.
+            - Ignored if O(state=present) and floating IP doesn't exist.
         type: str
     project_id:
         description:
@@ -57,6 +61,7 @@ options:
     target_server_id:
         description:
             - The ID of the server to which the floating IP is attached.
+            - Set V(0) to unattach.
             - Mutually exclusive with O(route_ip_id).
         type: str
     ptr_record:
@@ -183,7 +188,7 @@ def run_module():
     api_client = client.CherryServersClient(module)
 
     if module.params["state"] == "present":
-        create_ip(api_client, module)
+        present_ip(api_client, module)
     elif module.params["state"] == "absent":
         if module.params["id"] is not None and module.params["project_id"] is None:
             delete_single_ip(api_client, module)
@@ -191,9 +196,41 @@ def run_module():
             delete_multi_ips(api_client, module)
 
 
+def present_ip(api_client, module):
+    """Perform the necessary actions to ensure 'present' floating IP state."""
+    status, resp = api_client.send_request(
+        "GET", f"projects/{module.params['project_id']}/ips", constants.IP_TIMEOUT
+    )
+
+    ips = []
+
+    if status == 200:
+        ips = common.filter_fips(module.params, resp)
+    elif status != 404:
+        module.fail_json(msg=f"Unexpected client error: {resp}")
+
+    if len(ips) > 1:
+        module.fail_json(msg="More than one floating IP matches the giver parameters.")
+    if ips:
+        if check_param_state_diff(module.params, ips[0]):
+            update_ip(api_client, module, ips[0]["id"])
+        else:
+            module.exit_json(changed=False)
+    else:
+        create_ip(api_client, module)
+
+
 def create_ip(api_client: client, module: utils.AnsibleModule):
     """Create a new floating IP address."""
     params = module.params
+
+    if params["project_id"] is None or params["region_slug"] is None:
+        module.fail_json(
+            "project_id and region_slug are required for creating SSH keys."
+        )
+
+    if module.check_mode:
+        module.exit_json(changed=True)
 
     status, resp = api_client.send_request(
         "POST",
@@ -211,10 +248,12 @@ def create_ip(api_client: client, module: utils.AnsibleModule):
     if status != 201:
         module.fail_json(msg=f"Failed to create floating IP: {resp}")
 
-    # We need to another GET request, because the object returned from POST
+    # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
-    status, resp = api_client.send_request("GET", f"ips/{resp['id']}", constants.IP_TIMEOUT)
+    status, resp = api_client.send_request(
+        "GET", f"ips/{resp['id']}", constants.IP_TIMEOUT
+    )
 
     if status != 200:
         module.fail_json(
@@ -227,7 +266,9 @@ def create_ip(api_client: client, module: utils.AnsibleModule):
 
 def delete_single_ip(api_client: client, module: utils.AnsibleModule):
     """Delete a single floating IP."""
-    status, resp = api_client.send_request("GET", f"ips/{module.params['id']}", constants.IP_TIMEOUT)
+    status, resp = api_client.send_request(
+        "GET", f"ips/{module.params['id']}", constants.IP_TIMEOUT
+    )
     if status == 404:
         module.exit_json(changed=False)
     elif status != 200:
@@ -235,13 +276,15 @@ def delete_single_ip(api_client: client, module: utils.AnsibleModule):
             msg=f"Unknown error when checking if floating IP exists: {resp}"
         )
 
-    if resp["targeted_to"] != 0:
-        untarget_fip(api_client, module, resp["id"])
-
     if module.check_mode:
         module.exit_json(changed=True)
 
-    status, resp = api_client.send_request("DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT)
+    if resp["targeted_to"] != 0:
+        untarget_fip(api_client, module, resp["id"])
+
+    status, resp = api_client.send_request(
+        "DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT
+    )
     if status != 204:
         module.fail_json(msg=f"Failed to delete floating IP: {resp}")
 
@@ -280,6 +323,15 @@ def delete_multi_ips(api_client: client, module: utils.AnsibleModule):
     if failures:
         module.fail_json(changed=True, msg="\n".join(failures))
     module.exit_json(changed=True)
+
+
+def update_ip(api_client: client, module: utils.AnsibleModule, fip_id: str):
+    """TODO"""
+    pass
+
+
+def check_param_state_diff(module_params: dict, current_state: dict) -> bool:
+    direct_comparisons = [""]
 
 
 def untarget_fip(api_client: client, module: utils.AnsibleModule, fip_id: str):
