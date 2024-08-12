@@ -79,6 +79,7 @@ def trim_ip(ip: dict):
         "region",
     )
     target_id = ip.get("targeted_to", {}).get("id", 0)
+    target_id = ip.get("routed_to", {}).get("id", 0)
     region_slug = ip.get("region", {}).get("slug")
     for t in to_trim:
         ip.pop(t, None)

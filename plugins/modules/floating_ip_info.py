@@ -19,7 +19,7 @@ version_added: "0.1.0"
 description:
   - Gather information about your Cherry Servers floating IPs.
   - Returns floating IPs that match all your provided options in the given project.
-  - Alternatively, you can search directly by floating IP ID.
+  - Alternatively, you can gather information directly by floating IP ID.
 
 options:
     id:

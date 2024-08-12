@@ -18,7 +18,7 @@ version_added: "0.1.0"
 
 description: 
     - Create, update and delete SSH keys on Cherry Servers.
-    - The module will attempt to find a key, that matches the specified options.
+    - The module will attempt to find a key, that matches the provided options.
     - If multiple matching keys are found, the module fails.
     - Otherwise, depending on O(state) and if the key was found or not,
     - it will be updated, deleted or a new key will be created.

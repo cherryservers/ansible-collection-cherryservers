@@ -18,10 +18,11 @@ version_added: "0.1.0"
 
 description:
     - Create, update and delete floating IPs on Cherry Servers.
-    - The module will attempt to find a floating IP, that matches the specified options.
-    - If multiple matching IPs are found, the module fails.
-    - Otherwise, depending on O(state) and if the IP was found or not,
-    - it will be updated, deleted or a new floating IP will be created.
+    - If you wish to update or delete existing floating IPs,
+    - you must provide O(id) or the combination of O(project_id) and O(address),
+    - as identifiers, along with state and other desired options.
+    - If you wish to create new floating IPs,
+    - you must provide O(project_id) and O(region_slug) along other desired options.
 
 options:
     state:
@@ -33,24 +34,29 @@ options:
     id:
         description:
             - ID of the floating IP.
-            - Ignored if O(state=present) and floating IP doesn't exist.
-            - Required if O(state=absent) and O(project_id) is not provided.
+            - Used to identify existing floating IPs.
+            - Required if floating IP exists and O(address) is not provided.
+            - Mutually exclusive with O(address).
         type: str
     address:
         description:
             - Address of the floating IP.
-            - Ignored if O(state=present) and floating IP doesn't exist.
+            - Used to identify existing floating IPs.
+            - Required if floating IP exists and O(id) is not provided.
+            - Mutually exclusive with O(id).
         type: str
     project_id:
         description:
             - The ID of the project the floating IP belongs to.
             - Required if O(state=present) and floating IP doesn't exist.
-            - Required if O(state=absent) and O(id) is not provided.
+            - Required by O(address).
+            - Cannot be updated after creation.
         type: str
     region_slug:
         description:
             - The region slug of the floating IP.
             - Required if O(state=present) and floating IP doesn't exist.
+            - Cannot be updated after creation.
         aliases: [region]
         type: str
     route_ip_id:
@@ -76,6 +82,7 @@ options:
     ddos_scrubbing:
         description:
             - If true, DDOS scrubbing protection will be applied in real-time.
+            - Cannot be updated after creation.
         default: false
         type: bool
     tags:
@@ -106,15 +113,6 @@ EXAMPLES = r"""
   local.cherryservers.floating_ip:
     state: absent
     id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
-
-- name: "Delete IPs targeted to server 590738, that have the 'env: test' tag"
-  local.cherryservers.floating_ip:
-    state: "absent"
-    project_id: "213668"
-    target_server_id: "590738"
-    tags:
-      env: "test"
-  register: result
 """
 
 RETURN = r"""
@@ -170,6 +168,26 @@ from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
+from .. module_utils import cherry_module
+
+
+class FloatingIPModule(cherry_module.CherryModule):
+    """TODO"""
+
+    def _create_resource(self):
+        pass
+
+    def _normalize_resource(self):
+        pass
+
+    def _update_resource(self):
+        pass
+
+    def _delete_resource(self):
+        pass
+
+    def _check_diff(self) -> bool:
+        pass
 
 
 def run_module():
@@ -179,21 +197,43 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
-        mutually_exclusive=[["route_ip_id", "target_server_id"]],
-        required_if=[
-            ("state", "absent", ("id", "project_id"), True),
-        ],
+        mutually_exclusive=[["route_ip_id", "target_server_id"], ["id", "address"]],
+        required_one_of=[("project_id", "id")],
+        required_by={"address": "project_id"},
     )
 
     api_client = client.CherryServersClient(module)
 
+    if module.params["id"] is not None:
+        url = f"ips/{module.params['id']}"
+    else:
+        url = f"projects/{module.params['project_id']}/ips"
+
+    fip = common.find_resource_unique(
+        api_client,
+        module,
+        constants.FIP_IDENTIFYING_KEYS,
+        url,
+        constants.IP_TIMEOUT,
+    )
+
+    fip = common.trim_ip(fip)
+
     if module.params["state"] == "present":
-        present_ip(api_client, module)
-    elif module.params["state"] == "absent":
-        if module.params["id"] is not None and module.params["project_id"] is None:
-            delete_single_ip(api_client, module)
+        if fip:
+            if check_param_state_diff(module.params, fip):
+                update_key(api_client, module, key["id"])
+            elif module.check_mode:
+                module.exit_json(changed=False)
+            else:
+                module.exit_json(changed=False, cherryservers_sshkey=key)
         else:
-            delete_multi_ips(api_client, module)
+            create_key(api_client, module)
+    elif module.params["state"] == "absent":
+        if fip:
+            delete_fip(api_client, module, fip)
+        else:
+            module.exit_json(changed=False)
 
 
 def present_ip(api_client, module):
@@ -264,23 +304,13 @@ def create_ip(api_client: client, module: utils.AnsibleModule):
     module.exit_json(changed=True, cherryservers_floating_ip=resp)
 
 
-def delete_single_ip(api_client: client, module: utils.AnsibleModule):
+def delete_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
     """Delete a single floating IP."""
-    status, resp = api_client.send_request(
-        "GET", f"ips/{module.params['id']}", constants.IP_TIMEOUT
-    )
-    if status == 404:
-        module.exit_json(changed=False)
-    elif status != 200:
-        module.fail_json(
-            msg=f"Unknown error when checking if floating IP exists: {resp}"
-        )
-
     if module.check_mode:
         module.exit_json(changed=True)
 
-    if resp["targeted_to"] != 0:
-        untarget_fip(api_client, module, resp["id"])
+    if fip["targeted_to"] != 0:
+        untarget_fip(api_client, module, fip["id"])
 
     status, resp = api_client.send_request(
         "DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT
@@ -291,47 +321,32 @@ def delete_single_ip(api_client: client, module: utils.AnsibleModule):
     module.exit_json(changed=True)
 
 
-def delete_multi_ips(api_client: client, module: utils.AnsibleModule):
-    """Delete any floating IPs that match the modules argument_spec parameters."""
-    params = module.params
-
-    status, resp = api_client.send_request(
-        "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
-    )
-
-    fips_to_delete = common.filter_fips(params, resp)
-
-    if module.check_mode and fips_to_delete:
-        module.exit_json(changed=True)
-    elif not fips_to_delete:
-        module.exit_json(changed=False)
-
-    failures = []
-    for fip in fips_to_delete:
-        fip_id = fip["id"]
-
-        if fip["targeted_to"] != 0:
-            untarget_fip(api_client, module, fip_id)
-
-        status, _2 = api_client.send_request(
-            "DELETE",
-            f"ips/{fip_id}",
-            constants.IP_TIMEOUT,
-        )
-        if status != 204:
-            failures.append(f"Failed to delete floating IP: {fip_id}")
-    if failures:
-        module.fail_json(changed=True, msg="\n".join(failures))
-    module.exit_json(changed=True)
-
-
 def update_ip(api_client: client, module: utils.AnsibleModule, fip_id: str):
     """TODO"""
     pass
 
 
-def check_param_state_diff(module_params: dict, current_state: dict) -> bool:
-    direct_comparisons = [""]
+def check_param_state_diff(module_params: dict, fip: dict) -> bool:
+    """Check if module parameters differ from actual resource state.
+
+    Args:
+
+        module_params (dict): Module parameters.
+        fip (dict): Current floating IP state.
+
+    Returns:
+
+        bool: True if differs from actual floating IP state, False otherwise.
+
+    """
+    if module_params["route_ip_id"] is not None and module_params["route_ip_id"] != fip:
+        return True
+    if (
+            module_params["public_key"] is not None
+            and module_params["public_key"] != fip["key"]
+    ):
+        return True
+    return False
 
 
 def untarget_fip(api_client: client, module: utils.AnsibleModule, fip_id: str):
