@@ -164,11 +164,10 @@ def get_module_args() -> dict:
     return module_args
 
 
-def sshkey_filter(module_params: dict, current_state: dict) -> bool:
+def sshkey_filter(module_params: dict, sshkey: dict) -> bool:
     """Check if the key should be included in the response."""
     return all(
-        module_params[k_params] is None
-        or current_state[k_state] == module_params[k_params]
+        module_params[k_params] is None or sshkey[k_state] == module_params[k_params]
         for (k_state, k_params) in zip(
             constants.SSH_RESOURCE_KEYS, constants.SSH_MODULE_PARAM_KEYS
         )

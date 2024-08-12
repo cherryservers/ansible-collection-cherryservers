@@ -45,12 +45,12 @@ options:
     id:
         description:
             - The ID of the SSH key.
-            - Ignored if O(state=present) and SSH key doesn't exist.
+            - Ignored if O(state=present) and the key doesn't exist.
         type: int
     fingerprint:
         description:
             - The fingerprint of the SSH key.
-            - Ignored if O(state=present) and SSH key doesn't exist.
+            - Ignored if O(state=present) and the key doesn't exist.
         type: str
 
 
@@ -92,37 +92,37 @@ cherryservers_sshkey:
     contains:
         created:
             description: Timestamp of key creation.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: "2024-08-06T07:56:16+00:00"
         fingerprint:
             description: SSH key fingerprint.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: "54:8e:84:11:bb:29:59:41:36:cb:e2:k2:0c:4a:77:1d"
         href:
             description: SSH key href.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: /ssh-keys/7955
         id:
             description: SSH key ID.
-            returned: when O(state=present)
+            returned: always
             type: int
             sample: 7955
         key:
             description: Public SSH key.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com
         label:
             description: SSH key label.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: my-label
         updated:
             description: Timestamp of last key update.
-            returned: when O(state=present)
+            returned: always
             type: str
             sample: "2024-08-06T07:56:16+00:00"
 """
@@ -195,7 +195,7 @@ def get_module_args() -> dict:
     return module_args
 
 
-def check_param_state_diff(module_params: dict, current_state: dict) -> bool:
+def check_param_state_diff(module_params: dict, sshkey: dict) -> bool:
     """Check if module parameters differ from actual state.
 
     Check if either `label` or `public_key` are provided in the module params
@@ -204,21 +204,18 @@ def check_param_state_diff(module_params: dict, current_state: dict) -> bool:
     Args:
 
         module_params (dict): Module parameters.
-        current_state (dict): Current SSH key state.
+        sshkey (dict): Current SSH key state.
 
     Returns:
 
         bool: True if differs from actual SSH key state, False otherwise.
 
     """
-    if (
-        module_params["label"] is not None
-        and module_params["label"] != current_state["label"]
-    ):
+    if module_params["label"] is not None and module_params["label"] != sshkey["label"]:
         return True
     if (
         module_params["public_key"] is not None
-        and module_params["public_key"] != current_state["key"]
+        and module_params["public_key"] != sshkey["key"]
     ):
         return True
     return False
@@ -263,7 +260,9 @@ def update_key(
     module.exit_json(changed=True, cherryservers_sshkey=resp)
 
 
-def delete_key(api_client: client.CherryServersClient, module: utils.AnsibleModule, key: dict):
+def delete_key(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, key: dict
+):
     """Delete SSH key that matches the modules argument_spec parameters."""
     if module.check_mode:
         module.exit_json(changed=True)

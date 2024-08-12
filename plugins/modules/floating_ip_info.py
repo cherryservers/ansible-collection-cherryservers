@@ -19,7 +19,7 @@ version_added: "0.1.0"
 description:
   - Gather information about your Cherry Servers floating IPs.
   - Returns floating IPs that match all your provided options in the given project.
-  - If you don't provide a project, only the IP ID is checked for a match.
+  - Alternatively, you can search directly by floating IP ID.
 
 options:
     id:
@@ -44,6 +44,10 @@ options:
         description:
             - The region slug of the floating IP.
         aliases: [region]
+        type: str
+    target_server_id:
+        description:
+            - The ID of the server to which the floating IP is attached.
         type: str
     available_only:
         description:
@@ -150,12 +154,19 @@ def run_module():
 
     api_client = client.CherryServersClient(module)
 
-    if module.params["project_id"] is None:
-        ips = get_single_ip(api_client, module)
+    if module.params["id"] is not None:
+        fips = get_single_ip(api_client, module)
     else:
-        ips = get_multiple_ips(api_client, module)
+        fips = get_multiple_ips(api_client, module)
 
-    module.exit_json(changed=False, cherryservers_floating_ips=ips)
+    r = []
+
+    for fip in fips:
+        if fip_filter(module.params, fip):
+            common.trim_ip(fip)
+            r.append(fip)
+
+    module.exit_json(changed=False, cherryservers_floating_ips=r)
 
 
 def get_single_ip(api_client: client, module: utils.AnsibleModule) -> List[dict]:
@@ -170,8 +181,7 @@ def get_single_ip(api_client: client, module: utils.AnsibleModule) -> List[dict]
 
     ip = []
 
-    if status == 200 and resp["type"] == "floating-ip":
-        common.trim_ip(resp)
+    if status == 200:
         ip.append(resp)
     elif status != 404:
         module.fail_json(msg=f"Unexpected client error: {resp}")
@@ -194,14 +204,10 @@ def get_multiple_ips(api_client: client, module: utils.AnsibleModule) -> List[di
             "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
         )
 
-    ips = []
-
-    if status == 200:
-        ips = common.filter_fips(module.params, resp)
-    elif status != 404:
+    if status not in (200, 404):
         module.fail_json(msg=f"Unexpected client error: {resp}")
 
-    return ips
+    return resp
 
 
 def get_module_args() -> dict:
@@ -217,6 +223,7 @@ def get_module_args() -> dict:
             "id": {"type": "str"},
             "address": {"type": "str"},
             "project_id": {"type": "str"},
+            "target_server_id": {"type": "str"},
             "available_only": {"type": "bool", "default": "false"},
         }
     )
@@ -224,40 +231,31 @@ def get_module_args() -> dict:
     return module_args
 
 
-def filter_fips(module_params: dict, fips: Sequence[dict]) -> List[dict]:
-    """Filter floating IPs according to provided module parameters.
+def fip_filter(module_params: dict, fip: dict) -> bool:
+    """Check if the floating IP address should be included in the response."""
+    region_slug = fip["region"]["slug"]
+    target_server_id = fip.get("targeted_to", {}).get("id", None)
 
-    We go through all the project IPs and add all the ones whose
-    values match the user provided module parameters. If the parameter
-    is None, we consider it matching, since the user did not provide it.
+    if fip["type"] != "floating-ip":
+        return False
 
-    """
-    result = []
-
-    for ip in fips:
-        if ip["type"] != "floating-ip":
-            continue
-        if (
-            all(
-                module_params[k] is None or module_params[k] == ip[k]
-                for k in ["id", "address"]
+    if (
+        all(
+            module_params[k] is None or module_params[k] == fip[k]
+            for k in ["id", "address"]
+        )
+        and module_params["region_slug"] in (None, region_slug)
+        and module_params["target_server_id"] in (None, target_server_id)
+        and (
+            module_params["tags"] is None
+            or all(
+                module_params["tags"][k] == fip["tags"].get(k)
+                for k in module_params["tags"]
             )
-            and (
-                module_params["region_slug"] is None
-                or module_params["region_slug"] == ip["region"]["slug"]
-            )
-            and (
-                module_params["tags"] is None
-                or all(
-                    module_params["tags"][t] == ip["tags"].get(t)
-                    for t in module_params["tags"]
-                )
-            )
-        ):
-            common.trim_ip(ip)
-            result.append(ip)
-
-    return result
+        )
+    ):
+        return True
+    return False
 
 
 def main():
