@@ -165,4 +165,3 @@
       ansible.builtin.assert:
         that:
           - result is changed
-

@@ -69,7 +69,7 @@ options:
             - The ID of the server to which the floating IP is attached.
             - Set V(0) to unattach.
             - Mutually exclusive with O(route_ip_id).
-        type: str
+        type: int
     ptr_record:
         description:
             - Reverse DNS name for the IP address.
@@ -109,14 +109,33 @@ EXAMPLES = r"""
       env: "test"
   register: result
 
-- name: Delete single floating IP
+- name: Update a floating IP by using its ID
+  local.cherryservers.floating_ip:
+    id: "a0ff92c9-21f6-c387-33d0-5c941c0435f0"
+    target_server_id: 590738
+    ptr_record: "anstest"
+    a_record: "anstest"
+    tags:
+      env: "test"
+  register: result
+
+- name: Update a floating IP by using its address and project ID.
+  local.cherryservers.floating_ip:
+    address: "5.199.174.84"
+    project_id: 213668
+    target_server_id: 0
+    ptr_record: ""
+    a_record: ""
+  register: result
+
+- name: Delete floating IP
   local.cherryservers.floating_ip:
     state: absent
     id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
 """
 
 RETURN = r"""
-cherryservers_floating_ips:
+cherryservers_floating_ip:
   description: Floating IP data.
   returned: O(state=present) and not in check mode
   type: dict
@@ -157,37 +176,24 @@ cherryservers_floating_ips:
       type: dict
       sample:
         env: "dev"
-    targeted_to:
-      description: ID of the server to which the floating IP is targeted to. Value is 0 if IP is not targeted.
-      returned: always
+    target_server_id:
+      description: ID of the server to which the floating IP is targeted to.
+      returned: if exists
       type: int
       sample: "123456"
+    route_ip_id:
+      description: ID of the IP to which the floating IP is routed to.
+      returned: if exists
+      type: str
+      sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
 """
 
 from ansible.module_utils import basic as utils
+from typing import Optional, Tuple
 from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
-from .. module_utils import cherry_module
-
-
-class FloatingIPModule(cherry_module.CherryModule):
-    """TODO"""
-
-    def _create_resource(self):
-        pass
-
-    def _normalize_resource(self):
-        pass
-
-    def _update_resource(self):
-        pass
-
-    def _delete_resource(self):
-        pass
-
-    def _check_diff(self) -> bool:
-        pass
+from ..module_utils import normalizers
 
 
 def run_module():
@@ -204,31 +210,14 @@ def run_module():
 
     api_client = client.CherryServersClient(module)
 
-    if module.params["id"] is not None:
-        url = f"ips/{module.params['id']}"
-    else:
-        url = f"projects/{module.params['project_id']}/ips"
-
-    fip = common.find_resource_unique(
-        api_client,
-        module,
-        constants.FIP_IDENTIFYING_KEYS,
-        url,
-        constants.IP_TIMEOUT,
-    )
-
-    fip = common.trim_ip(fip)
+    fip = get_fip(api_client, module)
+    normalizers.normalize_ip(fip)
 
     if module.params["state"] == "present":
         if fip:
-            if check_param_state_diff(module.params, fip):
-                update_key(api_client, module, key["id"])
-            elif module.check_mode:
-                module.exit_json(changed=False)
-            else:
-                module.exit_json(changed=False, cherryservers_sshkey=key)
+            update_fip(api_client, module, fip)
         else:
-            create_key(api_client, module)
+            create_fip(api_client, module)
     elif module.params["state"] == "absent":
         if fip:
             delete_fip(api_client, module, fip)
@@ -236,31 +225,36 @@ def run_module():
             module.exit_json(changed=False)
 
 
-def present_ip(api_client, module):
-    """Perform the necessary actions to ensure 'present' floating IP state."""
-    status, resp = api_client.send_request(
-        "GET", f"projects/{module.params['project_id']}/ips", constants.IP_TIMEOUT
+def get_fip(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
+    """Returns a floating IP resource that matches the module specification.
+
+    Returns:
+        Optional[dict]: Floating IP resource or None if no matching resource is found.
+    """
+    if module.params["id"] is not None:
+        url = f"ips/{module.params['id']}"
+        status, resp = api_client.send_request(
+            "GET",
+            url,
+            constants.IP_TIMEOUT,
+        )
+        if status not in (200, 404):
+            module.fail_json(msg=f"Unknown error retrieving floating IP: {resp}")
+        if status == 200:
+            return resp
+        return None
+
+    url = f"projects/{module.params['project_id']}/ips"
+    return common.find_resource(
+        api_client,
+        module,
+        constants.FIP_IDENTIFYING_KEYS,
+        url,
+        constants.IP_TIMEOUT,
     )
 
-    ips = []
 
-    if status == 200:
-        ips = common.filter_fips(module.params, resp)
-    elif status != 404:
-        module.fail_json(msg=f"Unexpected client error: {resp}")
-
-    if len(ips) > 1:
-        module.fail_json(msg="More than one floating IP matches the giver parameters.")
-    if ips:
-        if check_param_state_diff(module.params, ips[0]):
-            update_ip(api_client, module, ips[0]["id"])
-        else:
-            module.exit_json(changed=False)
-    else:
-        create_ip(api_client, module)
-
-
-def create_ip(api_client: client, module: utils.AnsibleModule):
+def create_fip(api_client: client, module: utils.AnsibleModule):
     """Create a new floating IP address."""
     params = module.params
 
@@ -300,7 +294,7 @@ def create_ip(api_client: client, module: utils.AnsibleModule):
             msg=f"Failed to retrieve floating IP after creating it: {resp}"
         )
 
-    common.trim_ip(resp)
+    normalizers.normalize_ip(resp)
     module.exit_json(changed=True, cherryservers_floating_ip=resp)
 
 
@@ -321,32 +315,60 @@ def delete_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
     module.exit_json(changed=True)
 
 
-def update_ip(api_client: client, module: utils.AnsibleModule, fip_id: str):
-    """TODO"""
-    pass
+def update_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
+    """Update a floating IP resource."""
+    req, changed = get_update_request(module.params, fip)
+
+    if module.check_mode:
+        if changed:
+            module.exit_json(changed=True)
+        else:
+            module.exit_json(changed=False)
+    else:
+        if not changed:
+            module.exit_json(changed=False, cherryservers_floating_ip=fip)
+
+    status, resp = api_client.send_request(
+        "PUT", f"ips/{fip['id']}", constants.IP_TIMEOUT, **req
+    )
+    if status != 200:
+        module.fail_json(msg=f"Failed to update floating IP address: {resp}")
+    normalizers.normalize_ip(resp)
+    module.exit_json(changed=True, cherryservers_floating_ip=resp)
 
 
-def check_param_state_diff(module_params: dict, fip: dict) -> bool:
-    """Check if module parameters differ from actual resource state.
+def get_update_request(params: dict, fip: dict) -> Tuple[dict, bool]:
+    """Generate the necessary update request data fields."""
+    req = {}
+    changed = False
 
-    Args:
+    # prepare ptr_record and a_record for comparison
+    if fip["ptr_record"] is not None and fip["ptr_record"][-1] == ".":
+        fip["ptr_record"] = fip["ptr_record"][:-1]
 
-        module_params (dict): Module parameters.
-        fip (dict): Current floating IP state.
+    if fip["a_record"] is not None:
+        fip["a_record"] = fip["a_record"].split(".cloud.cherryservers.net")[0]
 
-    Returns:
+    for k in ("ptr_record", "a_record", "tags"):
+        if params[k] is not None and params[k] != fip[k]:
+            req[k] = params[k]
+            changed = True
 
-        bool: True if differs from actual floating IP state, False otherwise.
-
-    """
-    if module_params["route_ip_id"] is not None and module_params["route_ip_id"] != fip:
-        return True
     if (
-            module_params["public_key"] is not None
-            and module_params["public_key"] != fip["key"]
+        params["route_ip_id"] is not None
+        and params["route_ip_id"] != fip["route_ip_id"]
     ):
-        return True
-    return False
+        req["routed_to"] = params["route_ip_id"]
+        changed = True
+
+    if (
+        params["target_server_id"] is not None
+        and params["target_server_id"] != fip["target_server_id"]
+    ):
+        req["targeted_to"] = params["target_server_id"]
+        changed = True
+
+    return req, changed
 
 
 def untarget_fip(api_client: client, module: utils.AnsibleModule, fip_id: str):
@@ -377,7 +399,7 @@ def get_module_args() -> dict:
             "project_id": {"type": "str"},
             "region_slug": {"type": "str", "aliases": ["region"]},
             "route_ip_id": {"type": "str"},
-            "target_server_id": {"type": "str"},
+            "target_server_id": {"type": "int"},
             "ptr_record": {"type": "str"},
             "a_record": {"type": "str"},
             "ddos_scrubbing": {"type": "bool", "default": False},

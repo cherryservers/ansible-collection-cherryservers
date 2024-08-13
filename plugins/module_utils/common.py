@@ -4,19 +4,20 @@
 """Common module utilities.
 
 Contains various shared module utilities.
-
-Used by ansible modules for common tasks, such as getters and shared argument specs.
+Used by ansible modules for common tasks, such as shared argument specs and resource getters.
 
 Functions:
 
-    get_keys(api_client: client.CherryServersClient, module: utils.AnsibleModule) -> List[dict]
+    get_base_argument_spec -> dict: Returns the base argument spec for the module.
+    find_resource(api_client: client.CherryServersClient, module: utils.AnsibleModule,
+        keys: Sequence[Sequence[str]], url: str, timeout: int) -> Optional[dict]:
+        Find the resource that matches the modules identifying parameters.
 
 """
-from collections.abc import Sequence, Callable
-from typing import List, Optional
+from collections.abc import Sequence
+from typing import Optional
 
 from . import client
-from . import constants
 from ansible.module_utils import basic as utils
 
 
@@ -31,14 +32,35 @@ def get_base_argument_spec() -> dict:
     }
 
 
-def find_resource_unique(
+def find_resource(
     api_client: client.CherryServersClient,
     module: utils.AnsibleModule,
     keys: Sequence[Sequence[str]],
     url: str,
     timeout: int,
 ) -> Optional[dict]:
-    """TODO"""
+    """Find the resource that matches the modules identifying parameters.
+
+    Try to find the resource specified by the resource identifying module parameters,
+    from a list of possible resources.
+    If multiple matching resources are found, fails the module.
+
+    Args:
+
+        api_client (client.CherryServersClient): Cherry Servers API client.
+        module (utils.AnsibleModule): Ansible module to find the resource for.
+        keys (Sequence[Sequence[str]]):
+            Sequence that contains sequences of identifying dictionary keys.
+            The first inner sequence contains the resource identifying keys.
+            The second inner sequence contains the module parameter identifying keys.
+            The keys must be arranged in a matching order.
+            For example: [["id", "address", "region"], ["id", "address", "region_slug"]]
+            This parameter is necessary for matching values
+            that are named differently in the module and resource.
+        url (str): The URL from which to get the resource list.
+        timeout (int): Timeout in seconds.
+
+    """
     params = module.params
 
     if len(keys) != 2 or len(keys[0]) != len(keys[1]):
@@ -64,25 +86,3 @@ def find_resource_unique(
         return None
 
     return matching_resources[0]
-
-
-def trim_ip(ip: dict):
-    """Remove excess fields from IP resource."""
-    to_trim = (
-        "address_family",
-        "href",
-        "project",
-        "gateway",
-        "type",
-        "routed_to",
-        "targeted_to",
-        "region",
-    )
-    target_id = ip.get("targeted_to", {}).get("id", 0)
-    target_id = ip.get("routed_to", {}).get("id", 0)
-    region_slug = ip.get("region", {}).get("slug")
-    for t in to_trim:
-        ip.pop(t, None)
-
-    ip["targeted_to"] = target_id
-    ip["region_slug"] = region_slug

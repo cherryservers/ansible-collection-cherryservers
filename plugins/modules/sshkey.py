@@ -16,7 +16,7 @@ short_description: Create and manage SSH keys on Cherry Servers
 
 version_added: "0.1.0"
 
-description: 
+description:
     - Create, update and delete SSH keys on Cherry Servers.
     - The module will attempt to find a key, that matches the provided options.
     - If multiple matching keys are found, the module fails.
@@ -143,7 +143,7 @@ def run_module():
     )
 
     api_client = client.CherryServersClient(module)
-    key = common.find_resource_unique(
+    key = common.find_resource(
         api_client,
         module,
         constants.SSH_IDENTIFYING_KEYS,

@@ -48,7 +48,7 @@ options:
     target_server_id:
         description:
             - The ID of the server to which the floating IP is attached.
-        type: str
+        type: int
     available_only:
         description:
             - Whether to search for available floating IPs only.
@@ -128,9 +128,9 @@ cherryservers_floating_ips:
       type: dict
       sample:
         env: "dev"
-    targeted_to:
-      description: ID of the server to which the floating IP is targeted to. Value is 0 if IP is not targeted.
-      returned: always
+    target_server_id:
+      description: ID of the server to which the floating IP is targeted to.
+      returned: if exists
       type: int
       sample: "123456"
 """
@@ -139,6 +139,7 @@ from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
+from ..module_utils import normalizers
 from typing import List
 
 
@@ -163,7 +164,7 @@ def run_module():
 
     for fip in fips:
         if fip_filter(module.params, fip):
-            common.trim_ip(fip)
+            normalizers.normalize_ip(fip)
             r.append(fip)
 
     module.exit_json(changed=False, cherryservers_floating_ips=r)
@@ -223,7 +224,7 @@ def get_module_args() -> dict:
             "id": {"type": "str"},
             "address": {"type": "str"},
             "project_id": {"type": "str"},
-            "target_server_id": {"type": "str"},
+            "target_server_id": {"type": "int"},
             "available_only": {"type": "bool", "default": "false"},
         }
     )

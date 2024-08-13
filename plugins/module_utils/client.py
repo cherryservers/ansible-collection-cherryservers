@@ -31,7 +31,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
 
     Methods:
 
-        send_request(method: str, url: str, timeout: int, **kwargs) -> Any
+        send_request(method: str, url: str, timeout: int, **kwargs) -> Tuple[int, Any]
 
     """
 
