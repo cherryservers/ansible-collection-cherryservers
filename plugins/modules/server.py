@@ -8,10 +8,6 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type  # __metaclass__ is an exception to standard naming style, so pylint: disable=invalid-name.
 
-import base64
-import binascii
-import time
-
 DOCUMENTATION = r"""
 ---
 module: server
@@ -139,10 +135,119 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
-
+cherryservers_server:
+  description: Server data.
+  returned: O(state=present) and not in check mode
+  type: dict
+  contains:
+    hostname:
+      description: Server hostname.
+      returned: always
+      type: str
+      sample: "honest-toucan"
+    id:
+      description: Server ID.
+      returned: always
+      type: int
+      sample: "123456"
+    image:
+      description: Slug of the server operating system.
+      returned: always
+      type: str
+      sample: "fedora_39_64bit"
+    ip_addresses:
+      description: Server IP addresses.
+      returned: always
+      type: list
+      elements: dict
+      contains:
+        CIDR:
+          description: CIDR block of the IP.
+          returned: always
+          type: str
+          sample: "10.168.101.0/24"
+        address:
+          description: IP address.
+          returned: always
+          type: str
+          sample: "10.168.101.0"
+        address_family:
+          description: IP address family (IPv4 or IPv6).
+          returned: always
+          type: int
+          sample: 4
+        id:
+          description: IP address ID.
+          returned: always
+          type: str
+          sample: "16a70e80-d338-1b1e-f6ef-d5aacf9f3718"
+        type:
+          description: IP address type.
+          returned: always
+          type: str
+          sample: "floating-ip"
+    name:
+      description: Server name.
+      returned: always
+      type: str
+      sample: "Cloud VPS 1"
+    password:
+      description: Server password credential.
+      returned: for 24h after server creation
+      type: str
+      sample: "K85uf6Kx"
+    plan:
+      description: Slug of the server plan.
+      returned: always
+      type: str
+      sample: "cloud_vps_1"
+    project_id:
+      description: Cherry Servers project ID, associated with the server.
+      returned: always
+      type: int
+      sample: 123456
+    region:
+      description: Slug of the server region.
+      returned: always
+      type: str
+      sample: "eu_nord_1"
+    spot_market:
+      description: Whether the server is a spot market instance.
+      returned: always
+      type: bool
+      sample: false
+    ssh_keys:
+      description: Set of the SSH key IDs allowed to SSH to the server.
+      returned: always
+      type: list
+      elements: int
+      sample: [0000, 1111]
+    state:
+      description: Server state.
+      returned: always
+      type: str
+      sample: "active"
+    storage_id:
+      description: Server storage block ID. Null if doesn't exist.
+      returned: always
+      type: int
+      sample: 593063
+    tags:
+      description: Key/value metadata for server tagging.
+      returned: always
+      type: dict
+      sample:
+        env: "dev"
+    username:
+      description: Server username credential.
+      returned: for 24h after server creation
+      type: str
+      sample: "root"
 """
 
-from typing import Optional, Tuple
+import base64
+import binascii
+import time
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common

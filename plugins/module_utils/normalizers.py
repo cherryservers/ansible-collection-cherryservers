@@ -52,13 +52,15 @@ def normalize_server(server: dict) -> dict:
 
     ips = []
     for ip in server["ip_addresses"]:
-        ips.append({
-            "id": ip["id"],
-            "type": ip["type"],
-            "address": ip["address"],
-            "address_family": ip["address_family"],
-            "CIDR": ip["cidr"],
-        })
+        ips.append(
+            {
+                "id": ip["id"],
+                "type": ip["type"],
+                "address": ip["address"],
+                "address_family": ip["address_family"],
+                "CIDR": ip["cidr"],
+            }
+        )
 
     return {
         "hostname": server["hostname"],
