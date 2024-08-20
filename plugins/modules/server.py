@@ -202,18 +202,19 @@ def create_server(api_client: client, module: utils.AnsibleModule):
 
     if params["state"] == "active":
         wait_for_active(resp, api_client, module)
-    else:
-        # We need to do another GET request, because the object returned from POST
-        # doesn't contain all the necessary data.
 
-        status, resp = api_client.send_request(
-            "GET", f"servers/{resp['id']}", constants.SERVER_TIMEOUT
-        )
+    # We need to do another GET request, because the object returned from POST
+    # doesn't contain all the necessary data.
 
-        if status != 200:
-            module.fail_json(msg=f"Failed to retrieve server after creating it: {resp}")
+    status, resp = api_client.send_request(
+        "GET", f"servers/{resp['id']}", constants.SERVER_TIMEOUT
+    )
 
-    module.exit_json(changed=True, cherryservers_server=resp)
+    if status != 200:
+        module.fail_json(msg=f"Failed to retrieve server after creating it: {resp}")
+
+    server = normalizers.normalize_server(resp)
+    module.exit_json(changed=True, cherryservers_server=server)
 
 
 def wait_for_active(server: dict, api_client: client, module: utils.AnsibleModule):

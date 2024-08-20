@@ -45,3 +45,35 @@ def normalize_ip(ip: dict):
 
     ip["ptr_record"] = ip.get("ptr_record", None)
     ip["a_record"] = ip.get("a_record", None)
+
+
+def normalize_server(server: dict) -> dict:
+    """Normalize Cherry Servers server resource."""
+
+    ips = []
+    for ip in server["ip_addresses"]:
+        ips.append({
+            "id": ip["id"],
+            "type": ip["type"],
+            "address": ip["address"],
+            "address_family": ip["address_family"],
+            "CIDR": ip["cidr"],
+        })
+
+    return {
+        "hostname": server["hostname"],
+        "id": server["id"],
+        "image": server["image"],
+        "ip_addresses": ips,
+        "name": server["name"],
+        "password": server["password"],
+        "plan": server["plan"]["slug"],
+        "project_id": server["id"],
+        "region": server["region"]["slug"],
+        "spot_market": server["spot_instance"],
+        "ssh_keys": server["ssh_keys"],
+        "state": server["state"],
+        "storage_id": server.get("storage", {}).get("id", None),
+        "tags": server.get("tags", {}),
+        "username": server["username"],
+    }
