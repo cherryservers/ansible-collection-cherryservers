@@ -360,7 +360,7 @@ def get_module_args() -> dict:
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
-            "ssh_keys": {"type": "list", "elements": "str"},
+            "ssh_keys": {"type": "list", "elements": "str", "no_log": False},
             "extra_ip_addresses": {"type": "list", "elements": "str"},
             "user_data": {"type": "str"},
             "tags": {
