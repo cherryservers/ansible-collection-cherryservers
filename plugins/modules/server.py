@@ -8,6 +8,10 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type  # __metaclass__ is an exception to standard naming style, so pylint: disable=invalid-name.
 
+import base64
+import binascii
+import time
+
 DOCUMENTATION = r"""
 ---
 module: server
@@ -17,24 +21,15 @@ short_description: Create and manage servers on Cherry Servers
 version_added: "0.1.0"
 
 description:
-    - Create, update and delete floating IPs on Cherry Servers.
-    - If you wish to update or delete existing floating IPs,
-    - you must provide O(id) or the combination of O(project_id) and O(address),
-    - as identifiers, along with state and other desired options.
-    - If you wish to create new floating IPs,
-    - you must provide O(project_id) and O(region_slug) along other desired options.
+    - TBD.
 
 options:
     state:
         description:
             - The state of the server.
             - V(present) will ensure the server exists.
-            - V(absent) will ensure the server does not exist.
-            - V(rescue) will ensure the server exists and is in rescue mode.
-            - V(rebooted) will ensure the server exists and is rebooted.
-            - V(running) will ensure the server exists, is powered on and running.
-            - V(stopped) will ensure the server exists and is powered off.
-        choices: ['present', 'absent', 'rescue', 'rebooted', 'running', 'stopped']
+            - V(active) will ensure the server exists and wait for it to become active.
+        choices: ['present', 'active']
         type: str
         default: present
     project_id:
@@ -43,25 +38,23 @@ options:
             - Required if not O(state=absent) and server doesn't exist.
             - Only used on server creation.
         type: str
-    plan_slug:
+    plan:
         description:
             - Slug of the server plan.
             - Required if not O(state=absent) and server doesn't exist.
             - Only used on server creation.
-        aliases: [plan]
         type: str
-    image_slug:
+    image:
         description:
             - Slug of the server image.
             - Only used on server creation.
-        aliases: [image]
         type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
             - Only used on server creation.
         type: int
-    region_slug:
+    region:
         description:
             - Slug of the server region.
             - Required if not O(state=absent) and server doesn't exist.
@@ -73,19 +66,19 @@ options:
         type: str
     ssh_keys:
         description:
-            - SSH key IDs or labels, that are added to the server.
+            - SSH key IDs, that are added to the server.
             - Only used on server creation and for rescue mode.
         type: list
         elements: str
-    extra_ips:
+    extra_ip_addresses:
         description:
-            - Extra floating IP IDs or addresses to add to the server.
+            - Extra floating IP IDs to add to the server.
             - Only used on server creation.
         type: list
         elements: str
-    user_data_file:
+    user_data:
         description:
-            - Path to a userdata file for server initialization.
+            - Base64 encoded user-data blob. It should be a bash or cloud-config script.
             - Only used on server creation.
         type: str
     tags:
@@ -94,16 +87,18 @@ options:
         type: dict
     spot_market:
         description:
-            - Whether the server is a spo instance.
+            - Whether the server is a spot instance.
         type: bool
         default: false
     storage_id:
         description:
             - Elastic block storage ID.
         type: int
-            
-    
-    
+    active_timeout:
+        description:
+            - How long to wait for server to become active, in seconds.
+        type: int
+        default: 1800
 
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
@@ -113,92 +108,171 @@ author:
 """
 
 EXAMPLES = r"""
-- name: Create a floating IP
-  local.cherryservers.floating_ip:
+- name: Create a server and wait for it to become active
+  local.cherryservers.server:
+    state: "active"
     project_id: "213668"
-    region_slug: "eu_nord_1"
-    target_server_id: "590738"
-    ptr_record: "moduletestptr"
-    a_record: "moduletesta"
+    region: "eu_nord_1"
+    plan: "cloud_vps_1"
+    tags:
+      env: "test"
+    active_timeout: 600
+  register: result
+
+- name: Read user data
+  ansible.builtin.slurp:
+    src: "/home/mypath/cloud-init.yaml"
+  register: user_data_file
+- name: Create a server with more options
+  local.cherryservers.server:
+    project_id: "213668"
+    region: "eu_nord_1"
+    plan: "cloud_vps_1"
+    image: "fedora_39_64bit"
+    ssh_keys: ["1234"]
+    hostname: "cantankerous-crow"
+    extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
+    user_data: "{{ user_data_file['content'] }}"
     tags:
       env: "test"
   register: result
-
-- name: Update a floating IP by using its ID
-  local.cherryservers.floating_ip:
-    id: "a0ff92c9-21f6-c387-33d0-5c941c0435f0"
-    target_server_id: 590738
-    ptr_record: "anstest"
-    a_record: "anstest"
-    tags:
-      env: "test"
-  register: result
-
-- name: Update a floating IP by using its address and project ID.
-  local.cherryservers.floating_ip:
-    address: "5.199.174.84"
-    project_id: 213668
-    target_server_id: 0
-    ptr_record: ""
-    a_record: ""
-  register: result
-
-- name: Delete floating IP
-  local.cherryservers.floating_ip:
-    state: absent
-    id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
 """
 
 RETURN = r"""
-cherryservers_floating_ip:
-  description: Floating IP data.
-  returned: O(state=present) and not in check mode
-  type: dict
-  contains:
-    a_record:
-      description: DNS A record.
-      returned: if exists
-      type: str
-      sample: "test.cloud.cherryservers.net."
-    address:
-      description: IP address.
-      returned: always
-      type: str
-      sample: "5.199.174.84"
-    cidr:
-      description: CIDR notation.
-      returned: always
-      type: str
-      sample: "5.199.174.84/32"
-    id:
-      description: ID of the IP address.
-      returned: always
-      type: str
-      sample: "a0ff92c9-21f6-c387-33d0-5c941c0435f0"
-    ptr_record:
-      description: DNS pointer record.
-      returned: if exists
-      type: str
-      sample: "test."
-    region_slug:
-      description: Slug of the region which the IP belongs to.
-      returned: always
-      type: str
-      sample: "eu_nord_1"
-    tags:
-      description: Tags of the floating IP.
-      returned: always
-      type: dict
-      sample:
-        env: "dev"
-    target_server_id:
-      description: ID of the server to which the floating IP is targeted to.
-      returned: if exists
-      type: int
-      sample: "123456"
-    route_ip_id:
-      description: ID of the IP to which the floating IP is routed to.
-      returned: if exists
-      type: str
-      sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
+
 """
+
+from typing import Optional, Tuple
+from ansible.module_utils import basic as utils
+from ..module_utils import client
+from ..module_utils import common
+from ..module_utils import constants
+from ..module_utils import normalizers
+
+
+def run_module():
+    """Execute the ansible module."""
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+    )
+
+    api_client = client.CherryServersClient(module)
+
+    create_server(api_client, module)
+
+
+def create_server(api_client: client, module: utils.AnsibleModule):
+    """Create a new server."""
+    params = module.params
+
+    if any(params[k] is None for k in ["project_id", "region", "plan"]):
+        module.fail_json(msg="Missing required options for server creation.")
+
+    if module.check_mode:
+        module.exit_json(changed=True)
+
+    if params["user_data"] is not None:
+        try:
+            base64.b64decode(params["user_data"], validate=True)
+        except binascii.Error as e:
+            module.fail_json(msg=f"Invalid user_data string: {e}")
+
+    status, resp = api_client.send_request(
+        "POST",
+        f"projects/{params['project_id']}/servers",
+        constants.SERVER_TIMEOUT,
+        plan=params["plan"],
+        image=params["image"],
+        os_partition_size=params["os_partition_size"],
+        region=params["region"],
+        hostname=params["hostname"],
+        ssh_keys=params["ssh_keys"],
+        ip_addresses=params["extra_ip_addresses"],
+        user_data=params["user_data"],
+        spot_market=params["spot_market"],
+        storage_id=params["storage_id"],
+        tags=params["tags"],
+    )
+
+    if status != 201:
+        module.fail_json(msg=f"Failed to create server: {resp}")
+
+    if params["state"] == "active":
+        wait_for_active(resp, api_client, module)
+    else:
+        # We need to do another GET request, because the object returned from POST
+        # doesn't contain all the necessary data.
+
+        status, resp = api_client.send_request(
+            "GET", f"servers/{resp['id']}", constants.SERVER_TIMEOUT
+        )
+
+        if status != 200:
+            module.fail_json(msg=f"Failed to retrieve server after creating it: {resp}")
+
+    module.exit_json(changed=True, cherryservers_server=resp)
+
+
+def wait_for_active(server: dict, api_client: client, module: utils.AnsibleModule):
+    """Wait for server to become active."""
+    time_passed = 0
+
+    while server["state"] != "active":
+        status, resp = api_client.send_request(
+            "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT
+        )
+        if status != 200:
+            module.fail_json(
+                msg=f"Failed to retrieve server while waiting for it to become active: {resp}"
+            )
+        server = resp
+
+        time.sleep(10)
+        time_passed += 10
+
+        if time_passed >= module.params["active_timeout"]:
+            module.fail_json(msg="Timed out waiting for server to become active")
+
+
+def get_module_args() -> dict:
+    """Return a dictionary with the modules argument specification."""
+    module_args = common.get_base_argument_spec()
+
+    module_args.update(
+        {
+            "state": {
+                "choices": ["present", "active"],
+                "default": "present",
+                "type": "str",
+            },
+            "project_id": {"type": "str"},
+            "plan": {"type": "str"},
+            "image": {"type": "str"},
+            "os_partition_size": {"type": "int"},
+            "region": {"type": "str"},
+            "hostname": {"type": "str"},
+            "ssh_keys": {"type": "list", "elements": "str"},
+            "extra_ip_addresses": {"type": "list", "elements": "str"},
+            "user_data": {"type": "str"},
+            "tags": {
+                "type": "dict",
+            },
+            "spot_market": {"type": "bool", "default": False},
+            "storage_id": {"type": "int"},
+            "active_timeout": {"type": "int", "default": 1800},
+        }
+    )
+
+    return module_args
+
+
+def main():
+    """Main function."""
+    run_module()
+
+
+if __name__ == "__main__":
+    main()

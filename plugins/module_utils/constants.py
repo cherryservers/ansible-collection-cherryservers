@@ -3,6 +3,7 @@
 
 SSH_TIMEOUT = 10
 IP_TIMEOUT = 30
+SERVER_TIMEOUT = 20
 
 # Module parameter and API resource key sequence orders must match.
 
