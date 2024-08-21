@@ -25,14 +25,21 @@ options:
             - The state of the server.
             - V(present) will ensure the server exists.
             - V(active) will ensure the server exists and wait for it to become active.
-        choices: ['present', 'active']
+            - V(absent) will ensure the server doesn't exist.
+        choices: ['present', 'active', 'absent']
         type: str
         default: present
+    id:
+        description:
+            - ID of the server.
+            - Used to identify existing servers.
+            - Required if server exists and O(hostname) is not provided.
+        type: int
     project_id:
         description:
             - The ID of the project the server belongs to.
             - Required if not O(state=absent) and server doesn't exist.
-            - Only used on server creation.
+            - Required if O(id) is not provided.
         type: str
     plan:
         description:
@@ -59,6 +66,8 @@ options:
     hostname:
         description:
             - Server hostname.
+            - Required if server exists and O(id) is not provided.
+            - This can be used to identify existing servers together with O(project_id), but O(id) takes precedence.
         type: str
     ssh_keys:
         description:
@@ -131,6 +140,12 @@ EXAMPLES = r"""
     user_data: "{{ user_data_file['content'] }}"
     tags:
       env: "test"
+  register: result
+  
+- name: Delete a server
+  local.cherryservers.server:
+    state: "absent"
+    id: 593225
   register: result
 """
 
@@ -248,6 +263,7 @@ cherryservers_server:
 import base64
 import binascii
 import time
+from typing import Optional
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
@@ -262,11 +278,58 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
+        required_if=[
+            ("state", "absent", ("id", "hostname"), True),
+            ("state", "absent", ("id", "project_id"), True),
+        ],
     )
 
     api_client = client.CherryServersClient(module)
+    server = get_server(api_client, module)
 
-    create_server(api_client, module)
+    if module.params["state"] in ("present", "active"):
+        create_server(api_client, module)
+    elif module.params["state"] == "absent":
+        if server:
+            delete_server(api_client, module, server)
+        else:
+            module.exit_json(changed=False)
+
+
+def get_server(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
+    """Returns a server resource that matches the module specification.
+
+    Returns:
+        Optional[dict]: Server resource or None if no matching resource is found.
+    """
+    if module.params["id"] is not None:
+        url = f"servers/{module.params['id']}"
+        status, resp = api_client.send_request(
+            "GET",
+            url,
+            constants.SERVER_TIMEOUT,
+        )
+        if status not in (200, 404):
+            module.fail_json(msg=f"Unknown error retrieving server: {resp}")
+        if status == 200:
+            return resp
+        return None
+
+    url = f"projects/{module.params['project_id']}/servers"
+    servers = common.find_resources(
+        api_client,
+        module,
+        ("id", "hostname"),
+        url,
+        constants.SERVER_TIMEOUT,
+    )
+
+    if len(servers) > 1:
+        module.fail_json(msg=f"More than one matching server found: {servers}")
+    if len(servers) == 0:
+        return None
+
+    return servers[0]
 
 
 def create_server(api_client: client, module: utils.AnsibleModule):
@@ -343,6 +406,20 @@ def wait_for_active(server: dict, api_client: client, module: utils.AnsibleModul
             module.fail_json(msg="Timed out waiting for server to become active")
 
 
+def delete_server(api_client: client, module: utils.AnsibleModule, server: dict):
+    """Delete a server."""
+    if module.check_mode:
+        module.exit_json(changed=True)
+
+    status, resp = api_client.send_request(
+        "DELETE", f"servers/{server['id']}", constants.SERVER_TIMEOUT
+    )
+    if status != 204:
+        module.fail_json(msg=f"Failed to delete floating IP: {resp}")
+
+    module.exit_json(changed=True)
+
+
 def get_module_args() -> dict:
     """Return a dictionary with the modules argument specification."""
     module_args = common.get_base_argument_spec()
@@ -350,10 +427,11 @@ def get_module_args() -> dict:
     module_args.update(
         {
             "state": {
-                "choices": ["present", "active"],
+                "choices": ["present", "active", "absent"],
                 "default": "present",
                 "type": "str",
             },
+            "id": {"type": "int"},
             "project_id": {"type": "str"},
             "plan": {"type": "str"},
             "image": {"type": "str"},
