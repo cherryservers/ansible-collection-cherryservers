@@ -208,7 +208,7 @@ cherryservers_server:
       sample: "Cloud VPS 1"
     password:
       description: Server password credential.
-      returned: for 24h after server creation
+      returned: if exists. Not available while server is pending and is scrubbed after 24 hours.
       type: str
       sample: "K85uf6Kx"
     plan:
@@ -255,7 +255,7 @@ cherryservers_server:
         env: "dev"
     username:
       description: Server username credential.
-      returned: for 24h after server creation
+      returned: if exists. Not available while server is pending and is scrubbed after 24 hours.
       type: str
       sample: "root"
 """
@@ -269,6 +269,7 @@ from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
 from ..module_utils import normalizers
+from ..module_utils import wrapper
 
 
 def run_module():
@@ -285,62 +286,99 @@ def run_module():
     )
 
     api_client = client.CherryServersClient(module)
-    server = get_server(api_client, module)
+    w = wrapper.Wrapper(api_client, module, normalizers.normalize_server)
 
     if module.params["state"] in ("present", "active"):
-        create_server(api_client, module)
+        creation_state(w)
     elif module.params["state"] == "absent":
-        if server:
-            delete_server(api_client, module, server)
-        else:
-            module.exit_json(changed=False)
+        absent_state(w)
 
 
-def get_server(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
+def creation_state(w: wrapper.Wrapper):
+    """Execute creation state logic."""
+    server = create_server(w)
+
+    if w.module.params["state"] == "active":
+        wait_for_active(server, w)
+
+    # We need to do another GET request, because the object returned from POST
+    # doesn't contain all the necessary data.
+
+    try:
+        server = w.get_resource_by_id(
+            wrapper.Request(
+                "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT, {}
+            ),
+            "server",
+        )
+    except wrapper.APIError as e:
+        w.module.fail_json(msg=str(e))
+
+    w.module.exit_json(changed=True, cherryservers_server=server)
+
+
+def absent_state(w: wrapper.Wrapper):
+    """Execute deletion state logic."""
+    server = get_server(w)
+    if server:
+        if w.module.check_mode:
+            w.module.exit_json(changed=True)
+        delete_server(w, server["id"])
+        w.module.exit_json(changed=True)
+    else:
+        w.module.exit_json(changed=False)
+
+
+def get_server(w: wrapper.Wrapper) -> Optional[dict]:
     """Returns a server resource that matches the module specification.
 
     Returns:
         Optional[dict]: Server resource or None if no matching resource is found.
     """
-    if module.params["id"] is not None:
-        url = f"servers/{module.params['id']}"
-        status, resp = api_client.send_request(
-            "GET",
-            url,
-            constants.SERVER_TIMEOUT,
-        )
-        if status not in (200, 404):
-            module.fail_json(msg=f"Unknown error retrieving server: {resp}")
-        if status == 200:
-            return resp
-        return None
 
-    url = f"projects/{module.params['project_id']}/servers"
-    servers = common.find_resources(
-        api_client,
-        module,
-        ("id", "hostname"),
-        url,
-        constants.SERVER_TIMEOUT,
-    )
-
-    if len(servers) > 1:
-        module.fail_json(msg=f"More than one matching server found: {servers}")
-    if len(servers) == 0:
-        return None
-
-    return servers[0]
-
-
-def create_server(api_client: client, module: utils.AnsibleModule):
-    """Create a new server."""
+    module = w.module
     params = module.params
+    server = None
 
-    if any(params[k] is None for k in ["project_id", "region", "plan"]):
-        module.fail_json(msg="Missing required options for server creation.")
+    try:
+        if params["id"] is not None:
+            return w.get_resource_by_id(
+                wrapper.Request(
+                    "GET", f"servers/{params['id']}", constants.SERVER_TIMEOUT, {}
+                ),
+                "server",
+            )
 
-    if module.check_mode:
-        module.exit_json(changed=True)
+        servers = w.get_resources(
+            wrapper.Request(
+                "GET",
+                f"projects/{params['project_id']}/servers",
+                constants.SERVER_TIMEOUT,
+                {},
+            ),
+            "server",
+            ("hostname", "id"),
+        )
+        if len(servers) > 1:
+            module.fail_json(msg=f"More than one matching server found: {servers}")
+        if len(servers) == 1:
+            server = servers[0]
+    except wrapper.APIError as e:
+        module.fail_json(msg=str(e))
+
+    return server
+
+
+def create_server(w: wrapper.Wrapper) -> Optional[dict]:
+    """Create a new server.
+
+    Will fail the module if an error occurs.
+
+    Returns:
+        Optional[dict]: Server resource.
+    """
+    module = w.module
+    params = module.params
 
     if params["user_data"] is not None:
         try:
@@ -348,76 +386,73 @@ def create_server(api_client: client, module: utils.AnsibleModule):
         except binascii.Error as e:
             module.fail_json(msg=f"Invalid user_data string: {e}")
 
-    status, resp = api_client.send_request(
-        "POST",
-        f"projects/{params['project_id']}/servers",
-        constants.SERVER_TIMEOUT,
-        plan=params["plan"],
-        image=params["image"],
-        os_partition_size=params["os_partition_size"],
-        region=params["region"],
-        hostname=params["hostname"],
-        ssh_keys=params["ssh_keys"],
-        ip_addresses=params["extra_ip_addresses"],
-        user_data=params["user_data"],
-        spot_market=params["spot_market"],
-        storage_id=params["storage_id"],
-        tags=params["tags"],
-    )
+    try:
+        server = w.create_resource(
+            ("plan", "region", "project_id"),
+            "server",
+            wrapper.Request(
+                method="POST",
+                url=f"projects/{params.get('project_id')}/servers",
+                timeout=constants.SERVER_TIMEOUT,
+                params={
+                    "plan": params["plan"],
+                    "image": params["image"],
+                    "os_partition_size": params["os_partition_size"],
+                    "region": params["region"],
+                    "hostname": params["hostname"],
+                    "ssh_keys": params["ssh_keys"],
+                    "ip_addresses": params["extra_ip_addresses"],
+                    "user_data": params["user_data"],
+                    "spot_market": params["spot_market"],
+                    "storage_id": params["storage_id"],
+                    "tags": params["tags"],
+                },
+            ),
+            False,
+        )
+        return server
+    except wrapper.MissingParameterError as e:
+        module.fail_json(msg=str(e))
+    except wrapper.APIError as e:
+        module.fail_json(msg=str(e))
 
-    if status != 201:
-        module.fail_json(msg=f"Failed to create server: {resp}")
-
-    if params["state"] == "active":
-        wait_for_active(resp, api_client, module)
-
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
-
-    status, resp = api_client.send_request(
-        "GET", f"servers/{resp['id']}", constants.SERVER_TIMEOUT
-    )
-
-    if status != 200:
-        module.fail_json(msg=f"Failed to retrieve server after creating it: {resp}")
-
-    server = normalizers.normalize_server(resp)
-    module.exit_json(changed=True, cherryservers_server=server)
+    return None
 
 
-def wait_for_active(server: dict, api_client: client, module: utils.AnsibleModule):
+def wait_for_active(server: dict, w: wrapper.Wrapper):
     """Wait for server to become active."""
     time_passed = 0
 
-    while server["state"] != "active":
-        status, resp = api_client.send_request(
-            "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT
-        )
-        if status != 200:
-            module.fail_json(
-                msg=f"Failed to retrieve server while waiting for it to become active: {resp}"
+    try:
+        while server["state"] != "active":
+            resp = w.get_resource_by_id(
+                wrapper.Request(
+                    "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT, {}
+                ),
+                "server",
             )
-        server = resp
+            server = resp
 
-        time.sleep(10)
-        time_passed += 10
+            time.sleep(10)
+            time_passed += 10
 
-        if time_passed >= module.params["active_timeout"]:
-            module.fail_json(msg="Timed out waiting for server to become active")
+            if time_passed >= w.module.params["active_timeout"]:
+                w.module.fail_json(msg="Timed out waiting for server to become active")
+    except wrapper.APIError as e:
+        w.module.fail_json(msg=str(e))
 
 
-def delete_server(api_client: client, module: utils.AnsibleModule, server: dict):
+def delete_server(w: wrapper.Wrapper, server_id: int):
     """Delete a server."""
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    status, resp = api_client.send_request(
-        "DELETE", f"servers/{server['id']}", constants.SERVER_TIMEOUT
-    )
-    if status != 204:
-        module.fail_json(msg=f"Failed to delete floating IP: {resp}")
-
-    module.exit_json(changed=True)
+    try:
+        w.delete_resource(
+            wrapper.Request(
+                "DELETE", f"servers/{server_id}", constants.SERVER_TIMEOUT, {}
+            ),
+            "server",
+        )
+    except wrapper.APIError as e:
+        w.module.fail_json(msg=str(e))
 
 
 def get_module_args() -> dict:
