@@ -4,7 +4,7 @@
     - name: create first ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: first_key
     - name: verify create first ssh key
@@ -15,7 +15,7 @@
     - name: create second ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_2 }}"
-        public_key: "{{ fake_public_key_2 }}"
+        key: "{{ fake_public_key_2 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: second_key
     - name: verify create second ssh key
@@ -113,7 +113,7 @@
     - name: test gather key by public_key
       local.cherryservers.sshkey_info:
         auth_token: "{{ cherryservers_api_key }}"
-        public_key: "{{ first_key.cherryservers_sshkey.key }}"
+        key: "{{ first_key.cherryservers_sshkey.key }}"
       register: result
     - name: verify gather key by public_key
       ansible.builtin.assert:
@@ -124,7 +124,7 @@
     - name: test gather key by public_key wrong
       local.cherryservers.sshkey_info:
         auth_token: "{{ cherryservers_api_key }}"
-        public_key: "{{ first_key.cherryservers_sshkey.key }}bad"
+        key: "{{ first_key.cherryservers_sshkey.key }}bad"
       register: result
     - name: verify gather key by public_key wrong
       ansible.builtin.assert:
@@ -157,7 +157,7 @@
 
     - name: delete second ssh key
       local.cherryservers.sshkey:
-        public_key: "{{ fake_public_key_2 }}"
+        key: "{{ fake_public_key_2 }}"
         state: "absent"
         auth_token: "{{ cherryservers_api_key }}"
       register: result

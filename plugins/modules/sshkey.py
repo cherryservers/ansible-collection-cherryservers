@@ -30,11 +30,10 @@ options:
         default: present
         choices: ['absent', 'present']
         type: str
-    public_key:
+    key:
         description:
             - The public SSH key.
             - Required if the key doesn't exist.
-        aliases: [key]
         type: str
     label:
         description:
@@ -66,7 +65,7 @@ EXAMPLES = r"""
   local.cherryservers.sshkey:
     auth_token: "{{ auth_token }}"
     label: "SSH-test-key"
-    public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
+    pkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
     state: present
   register: result
 
@@ -183,9 +182,9 @@ def get_module_args() -> dict:
                 "type": "str",
                 "aliases": ["name"],
             },
-            "public_key": {
+            "key": {
                 "type": "str",
-                "aliases": ["key"],
+                "no_log": False,
             },
             "id": {"type": "int"},
             "fingerprint": {"type": "str"},
@@ -198,7 +197,7 @@ def get_module_args() -> dict:
 def check_param_state_diff(module_params: dict, sshkey: dict) -> bool:
     """Check if module parameters differ from actual state.
 
-    Check if either `label` or `public_key` are provided in the module params
+    Check if either `label` or `key` are provided in the module params
     and if they differ from actual SSH key state.
 
     Args:
@@ -211,20 +210,16 @@ def check_param_state_diff(module_params: dict, sshkey: dict) -> bool:
         bool: True if differs from actual SSH key state, False otherwise.
 
     """
-    if module_params["label"] is not None and module_params["label"] != sshkey["label"]:
-        return True
-    if (
-        module_params["public_key"] is not None
-        and module_params["public_key"] != sshkey["key"]
-    ):
-        return True
-    return False
+    return any(
+        module_params[k] is not None and module_params[k] != sshkey[k]
+        for k in ["label", "key"]
+    )
 
 
 def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModule):
     """Create a new SSH key."""
-    if module.params["label"] is None or module.params["public_key"] is None:
-        module.fail_json("Label and public key are required for creating SSH keys.")
+    if module.params["label"] is None or module.params["key"] is None:
+        module.fail_json("Label and key are required for creating SSH keys.")
 
     if module.check_mode:
         module.exit_json(changed=True)
@@ -234,7 +229,7 @@ def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModu
         "ssh-keys",
         constants.SSH_TIMEOUT,
         label=module.params["label"],
-        key=module.params["public_key"],
+        key=module.params["key"],
     )
     if status != 201:
         module.fail_json(msg=f"Failed to create SSH key: {resp}")
@@ -253,7 +248,7 @@ def update_key(
         f"ssh-keys/{key_id}",
         constants.SSH_TIMEOUT,
         label=module.params["label"],
-        key=module.params["public_key"],
+        key=module.params["key"],
     )
     if status != 201:
         module.fail_json(msg=f"Failed to update SSH key: {resp}")

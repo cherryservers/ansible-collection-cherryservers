@@ -22,7 +22,7 @@ description:
   - If you provide no options, returns all your SSH keys.
 
 options:
-    public_key:
+    key:
         description:
             - The public SSH key.
         type: str
@@ -153,8 +153,9 @@ def get_module_args() -> dict:
                 "type": "str",
                 "aliases": ["name"],
             },
-            "public_key": {
+            "key": {
                 "type": "str",
+                "no_log": False,
             },
             "id": {"type": "int"},
             "fingerprint": {"type": "str"},

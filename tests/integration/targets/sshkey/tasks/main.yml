@@ -15,7 +15,7 @@
     - name: test create ssh key with check mode
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: first_sshkey
       check_mode: true
@@ -27,7 +27,7 @@
     - name: test that no ssh key actually created
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify that no ssh key actually created
@@ -39,7 +39,7 @@
     - name: test create ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: first_sshkey
     - name: verify create ssh key
@@ -50,7 +50,7 @@
     - name: test ssh key actually created
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify ssh key actually created
@@ -61,7 +61,7 @@
     - name: test key creation idempotency with check mode
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
       check_mode: true
@@ -73,7 +73,7 @@
     - name: test key creation idempotency
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_1 }}"
+        key: "{{ fake_public_key_1 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify key creation idempotency
@@ -84,7 +84,7 @@
     - name: create second ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_2 }}"
-        public_key: "{{ fake_public_key_2 }}"
+        key: "{{ fake_public_key_2 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: second_sshkey
     - name: verify second ssh key
@@ -95,7 +95,7 @@
     - name: test fail cleanly on update ambiguity
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}"
-        public_key: "{{ fake_public_key_2 }}"
+        key: "{{ fake_public_key_2 }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
       ignore_errors: true
@@ -108,7 +108,7 @@
       local.cherryservers.sshkey:
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       check_mode: true
       register: result
@@ -120,7 +120,7 @@
     - name: test no update actually happened
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify no update actually happened
@@ -133,7 +133,7 @@
       local.cherryservers.sshkey:
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify update ssh key
@@ -144,7 +144,7 @@
     - name: test update actually happened
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify update actually happened
@@ -156,7 +156,7 @@
       local.cherryservers.sshkey:
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
       check_mode: true
@@ -169,7 +169,7 @@
       local.cherryservers.sshkey:
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify key update idempotency
@@ -190,7 +190,7 @@
     - name: test delete ssh key with check mode
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
       register: result
@@ -203,7 +203,7 @@
     - name: test that no ssh key actually deleted
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify that no ssh key actually deleted
@@ -214,7 +214,7 @@
     - name: test delete ssh key
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
       register: result
@@ -226,7 +226,7 @@
     - name: test ssh key actually deleted
       local.cherryservers.sshkey_info:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify ssh key actually deleted
@@ -238,7 +238,7 @@
     - name: test key delete idempotency with check mode
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
       register: result
@@ -251,7 +251,7 @@
     - name: test key delete idempotency
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_updated }}"
+        key: "{{ fake_public_key_updated }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
       register: result
@@ -264,7 +264,7 @@
     - name: delete test keys
       local.cherryservers.sshkey:
         label: "{{ key_label_1 }}_updated"
-        public_key: "{{ fake_public_key_2 }}"
+        key: "{{ fake_public_key_2 }}"
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
