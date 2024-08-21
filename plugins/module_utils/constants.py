@@ -4,23 +4,3 @@
 SSH_TIMEOUT = 10
 IP_TIMEOUT = 30
 SERVER_TIMEOUT = 20
-
-# Module parameter and API resource key sequence orders must match.
-
-SSH_MODULE_PARAM_KEYS = ("id", "fingerprint", "label", "key")
-SSH_RESOURCE_KEYS = ("id", "fingerprint", "label", "key")
-
-SSH_MODULE_PARAM_IDENTIFYING_KEYS = ("id", "fingerprint", "label", "key")
-SSH_RESOURCE_IDENTIFYING_KEYS = ("id", "fingerprint", "label", "key")
-SSH_IDENTIFYING_KEYS = (
-    SSH_RESOURCE_IDENTIFYING_KEYS,
-    SSH_MODULE_PARAM_IDENTIFYING_KEYS,
-)
-
-FIP_MODULE_PARAM_IDENTIFYING_KEYS = ("id", "address")
-FIP_RESOURCE_IDENTIFYING_KEYS = ("id", "address")
-
-FIP_IDENTIFYING_KEYS = (
-    FIP_RESOURCE_IDENTIFYING_KEYS,
-    FIP_MODULE_PARAM_IDENTIFYING_KEYS,
-)

@@ -135,12 +135,12 @@ cherryservers_floating_ips:
       sample: "123456"
 """
 
+from typing import List
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
 from ..module_utils import normalizers
-from typing import List
 
 
 def run_module():

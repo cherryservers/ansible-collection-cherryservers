@@ -15,7 +15,7 @@ Functions:
 
 """
 from collections.abc import Sequence
-from typing import Optional, List
+from typing import List
 
 from . import client
 from ansible.module_utils import basic as utils

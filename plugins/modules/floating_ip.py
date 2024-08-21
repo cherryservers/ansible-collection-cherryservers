@@ -188,8 +188,8 @@ cherryservers_floating_ip:
       sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
 """
 
-from ansible.module_utils import basic as utils
 from typing import Optional, Tuple
+from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
