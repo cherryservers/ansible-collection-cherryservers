@@ -228,6 +228,8 @@ def run_module():
 def get_fip(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
     """Returns a floating IP resource that matches the module specification.
 
+    If multiple matching floating IPs are found, fails the module.
+
     Returns:
         Optional[dict]: Floating IP resource or None if no matching resource is found.
     """
@@ -245,13 +247,20 @@ def get_fip(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
         return None
 
     url = f"projects/{module.params['project_id']}/ips"
-    return common.find_resource(
+    ips = common.find_resources(
         api_client,
         module,
-        constants.FIP_IDENTIFYING_KEYS,
+        ("id", "address"),
         url,
         constants.IP_TIMEOUT,
     )
+
+    if len(ips) > 1:
+        module.fail_json(msg=f"More than one matching floating IP found: {ips}")
+    if len(ips) == 0:
+        return None
+
+    return ips[0]
 
 
 def create_fip(api_client: client, module: utils.AnsibleModule):

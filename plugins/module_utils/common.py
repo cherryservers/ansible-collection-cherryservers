@@ -15,7 +15,7 @@ Functions:
 
 """
 from collections.abc import Sequence
-from typing import Optional
+from typing import Optional, List
 
 from . import client
 from ansible.module_utils import basic as utils
@@ -32,39 +32,29 @@ def get_base_argument_spec() -> dict:
     }
 
 
-def find_resource(
+def find_resources(
     api_client: client.CherryServersClient,
     module: utils.AnsibleModule,
-    keys: Sequence[Sequence[str]],
+    keys: Sequence[str],
     url: str,
     timeout: int,
-) -> Optional[dict]:
-    """Find the resource that matches the modules identifying parameters.
+) -> List[dict]:
+    """Find the resources that match the modules identifying parameters.
 
-    Try to find the resource specified by the resource identifying module parameters,
-    from a list of possible resources.
-    If multiple matching resources are found, fails the module.
+    Try to find the resources specified by the resource identifying module parameters.
 
     Args:
 
         api_client (client.CherryServersClient): Cherry Servers API client.
         module (utils.AnsibleModule): Ansible module to find the resource for.
-        keys (Sequence[Sequence[str]]):
-            Sequence that contains sequences of identifying dictionary keys.
-            The first inner sequence contains the resource identifying keys.
-            The second inner sequence contains the module parameter identifying keys.
-            The keys must be arranged in a matching order.
-            For example: [["id", "address", "region"], ["id", "address", "region_slug"]]
-            This parameter is necessary for matching values
-            that are named differently in the module and resource.
+        keys (Sequence[str]):
+            Sequence that contains resource and module parameter identifying keys.
+            The module parameters and the resource both must have these keys.
         url (str): The URL from which to get the resource list.
         timeout (int): Timeout in seconds.
 
     """
     params = module.params
-
-    if len(keys) != 2 or len(keys[0]) != len(keys[1]):
-        module.fail_json(msg=f"Invalid key sequence: {keys}")
 
     status, resp = api_client.send_request("GET", url, timeout)
     if status != 200:
@@ -73,16 +63,7 @@ def find_resource(
     matching_resources = []
 
     for resource in resp:
-        if any(
-            resource[k_resource] == params[k_param]
-            for (k_resource, k_param) in zip(keys[0], keys[1])
-        ):
+        if any(resource[k] == params[k] for k in keys):
             matching_resources.append(resource)
 
-    if len(matching_resources) > 1:
-        module.fail_json(msg=f"Multiple matching resources found: {matching_resources}")
-
-    if not matching_resources:
-        return None
-
-    return matching_resources[0]
+    return matching_resources

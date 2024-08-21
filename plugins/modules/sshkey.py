@@ -65,7 +65,7 @@ EXAMPLES = r"""
   local.cherryservers.sshkey:
     auth_token: "{{ auth_token }}"
     label: "SSH-test-key"
-    pkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
     state: present
   register: result
 
@@ -142,27 +142,29 @@ def run_module():
     )
 
     api_client = client.CherryServersClient(module)
-    key = common.find_resource(
+    keys = common.find_resources(
         api_client,
         module,
-        constants.SSH_IDENTIFYING_KEYS,
+        ("id", "label", "fingerprint", "key"),
         "ssh-keys",
         constants.SSH_TIMEOUT,
     )
+    if len(keys) > 1:
+        module.fail_json(msg="More than one matching SSH key found.")
 
     if module.params["state"] == "present":
-        if key:
-            if check_param_state_diff(module.params, key):
-                update_key(api_client, module, key["id"])
+        if keys:
+            if check_param_state_diff(module.params, keys[0]):
+                update_key(api_client, module, keys[0]["id"])
             elif module.check_mode:
                 module.exit_json(changed=False)
             else:
-                module.exit_json(changed=False, cherryservers_sshkey=key)
+                module.exit_json(changed=False, cherryservers_sshkey=keys[0])
         else:
             create_key(api_client, module)
     elif module.params["state"] == "absent":
-        if key:
-            delete_key(api_client, module, key)
+        if keys:
+            delete_key(api_client, module, keys[0])
         else:
             module.exit_json(changed=False)
 
