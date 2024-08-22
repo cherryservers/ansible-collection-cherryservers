@@ -51,30 +51,30 @@ def normalize_server(server: dict) -> dict:
     """Normalize Cherry Servers server resource."""
 
     ips = []
-    for ip in server["ip_addresses"]:
+    for ip in server.get("ip_addresses",[]):
         ips.append(
             {
-                "id": ip["id"],
-                "type": ip["type"],
-                "address": ip["address"],
-                "address_family": ip["address_family"],
-                "CIDR": ip["cidr"],
+                "id": ip.get("id", None),
+                "type": ip.get("type", None),
+                "address": ip.get("address", None),
+                "address_family": ip.get("address_family", None),
+                "CIDR": ip.get("cidr", None),
             }
         )
 
     return {
-        "hostname": server["hostname"],
-        "id": server["id"],
-        "image": server["image"],
+        "hostname": server.get("hostname", None),
+        "id": server.get("id", None),
+        "image": server.get("image", None),
         "ip_addresses": ips,
-        "name": server["name"],
+        "name": server.get("name", None),
         "password": server.get("password", None),
-        "plan": server["plan"]["slug"],
-        "project_id": server["project"]["id"],
-        "region": server["region"]["slug"],
-        "spot_market": server["spot_instance"],
-        "ssh_keys": server["ssh_keys"],
-        "state": server["state"],
+        "plan": server.get("plan", {}).get("name", None),
+        "project_id": server.get("project", {}).get("id", None),
+        "region": server.get("region", {}).get("slug", None),
+        "spot_market": server.get("spot_instance", None),
+        "ssh_keys": server.get("ssh_keys", None),
+        "state": server.get("state", None),
         "storage_id": server.get("storage", {}).get("id", None),
         "tags": server.get("tags", {}),
         "username": server.get("username", None),

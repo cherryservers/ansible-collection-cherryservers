@@ -28,13 +28,14 @@ options:
             - The state of the server.
             - V(present) will ensure the server exists.
             - V(active) will ensure the server exists and is active.
-            - V(absent) will ensure the server doesn't exist.
+            - V(absent) will ensure that the server with the provided O(id) does not exist.
         choices: ['present', 'active', 'absent']
         type: str
         default: active
     id:
         description:
             - ID of the server.
+            - Used to identify existing servers.
             - Required if server exists.
         type: int
     project_id:
@@ -267,7 +268,7 @@ cherryservers_server:
 import base64
 import binascii
 import time
-from typing import Optional
+from typing import Optional, Tuple
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import common
@@ -282,21 +283,46 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
+        required_if=[("state", "absent", "id", True)],
     )
 
     api_client = client.CherryServersClient(module)
 
+    # If ID is not provided, we assume that creation is the intended operation.
     if module.params["id"]:
-        modification_state(api_client, module)
+        if module.params["state"] == "absent":
+            absent_state(api_client, module)
+        else:
+            update_state(api_client, module)
     else:
         creation_state(api_client, module)
 
 
-def modification_state(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule
-):
-    """Execute modification state logic."""
-    absent_state(api_client, module)
+def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Execute update state logic."""
+    server = get_server(api_client, module, module.params["id"])
+    req, changed = get_server_update_request(module.params, server)
+
+    if module.check_mode:
+        if changed:
+            module.exit_json(changed=True)
+        else:
+            module.exit_json(changed=False)
+    else:
+        if not changed:
+            module.exit_json(changed=False, cherryservers_server=server)
+
+    status, resp = api_client.send_request(
+        "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **req
+    )
+    if status != 201:
+        module.fail_json(msg=f"Failed to update server: {resp}")
+
+    # We need to do another GET request, because the object returned from POST
+    # doesn't contain all the necessary data.
+
+    server = get_server(api_client, module, module.params["id"])
+    module.exit_json(changed=True, cherryservers_server=server)
 
 
 def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
@@ -352,6 +378,19 @@ def get_server(
     if status == 200:
         return normalizers.normalize_server(resp)
     return None
+
+
+def get_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
+    """TODO."""
+    req = {}
+    changed = False
+
+    for k in ("hostname", "tags"):
+        if params[k] is not None and params[k] != server[k]:
+            req[k] = params[k]
+            changed = True
+
+    return req, changed
 
 
 def create_server(
