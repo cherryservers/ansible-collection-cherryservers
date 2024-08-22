@@ -19,8 +19,6 @@ version_added: "0.1.0"
 description:
     - Create, update and delete servers on Cherry Servers.
     - If you want to manage an existing server, set O(id) along with state and other desired options.
-    - If you set options that require rebuilding an existing server,
-    - it will become temporarily inactive.
 
 options:
     state:
@@ -53,12 +51,12 @@ options:
     image:
         description:
             - Slug of the server image.
-            - Setting this option for an existing server requires rebuilding.
+            - Setting this option for an existing server requires O(allow_rebuild=true).
         type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
-            - Setting this option for an existing server requires rebuilding.
+            - Setting this option for an existing server requires O(allow_rebuild=true).
         type: int
     region:
         description:
@@ -73,7 +71,7 @@ options:
     ssh_keys:
         description:
             - SSH key IDs, that are added to the server.
-            - Setting this option for an existing server requires rebuilding.
+            - Setting this option for an existing server requires O(allow_rebuild=true).
         type: list
         elements: str
     extra_ip_addresses:
@@ -87,7 +85,7 @@ options:
     user_data:
         description:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
-            - Setting this option for an existing server requires rebuilding.
+            - Setting this option for an existing server requires O(allow_rebuild=true).
         type: str
     tags:
         description:
@@ -109,7 +107,19 @@ options:
             - How long to wait for the server to become active, in seconds.
         type: int
         default: 1800
-
+    allow_rebuild:
+        description:
+            - Setting this to true will allow rebuilding the server.
+            - This parameter is not saved in server state and you need to set it to V(true)
+            - every time you need to do so.
+            - Rebuilding will make the server temporarily inactive.
+        type: bool
+        default: false
+    password:
+        description:
+            - Required if O(allow_rebuild=true).
+            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Cannot be set for a server that doesn't exist.
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
 
@@ -283,7 +293,10 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
-        required_if=[("state", "absent", "id", True)],
+        required_if=[
+            ("state", "absent", "id", True),
+            ("allow_rebuild", True, "password", True),
+        ],
     )
 
     api_client = client.CherryServersClient(module)
@@ -301,7 +314,9 @@ def run_module():
 def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
     """Execute update state logic."""
     server = get_server(api_client, module, module.params["id"])
-    req, changed = get_server_update_request(module.params, server)
+    basic_req, basic_changed = get_basic_server_update_request(module.params, server)
+    rebuild_req, rebuild_changed = get_rebuilding_server_update_request(module.params, server)
+    changed = basic_changed or rebuild_changed
 
     if module.check_mode:
         if changed:
@@ -313,16 +328,54 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
             module.exit_json(changed=False, cherryservers_server=server)
 
     status, resp = api_client.send_request(
-        "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **req
+        "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
     )
     if status != 201:
         module.fail_json(msg=f"Failed to update server: {resp}")
+
+    if module.params["allow_rebuild"]:
+        status, resp = api_client.send_request(
+            "POST", f"servers/{server['id']}/actions", constants.SERVER_TIMEOUT, **rebuild_req
+        )
+        if status != 201:
+            module.fail_json(msg=f"Failed to update server: {resp}")
+    elif rebuild_changed:
+        module.fail_json(msg=f"The options you've selected require server rebuilding.")
 
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
     server = get_server(api_client, module, module.params["id"])
     module.exit_json(changed=True, cherryservers_server=server)
+
+
+def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
+    """TODO."""
+    req = {}
+    changed = False
+
+    for k in ("hostname", "tags"):
+        if params[k] is not None and params[k] != server[k]:
+            req[k] = params[k]
+            changed = True
+
+    return req, changed
+
+
+def get_rebuilding_server_update_request(
+    params: dict, server: dict
+) -> Tuple[dict, bool]:
+    """TODO."""
+    req = {}
+    changed = False
+
+    for k in ("image", "os_partition_size", "ssh_keys", "user_data"):
+        if params[k] is not None and params[k] != server[k]:
+            req[k] = params[k]
+            changed = True
+    req["password"] = params["password"]
+
+    return req, changed
 
 
 def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
@@ -378,19 +431,6 @@ def get_server(
     if status == 200:
         return normalizers.normalize_server(resp)
     return None
-
-
-def get_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
-    """TODO."""
-    req = {}
-    changed = False
-
-    for k in ("hostname", "tags"):
-        if params[k] is not None and params[k] != server[k]:
-            req[k] = params[k]
-            changed = True
-
-    return req, changed
 
 
 def create_server(
