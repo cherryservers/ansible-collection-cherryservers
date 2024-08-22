@@ -293,19 +293,23 @@ def run_module():
     else:
         creation_state(w)
 
-    if module.params["state"] in ("present", "active"):
-        creation_state(w)
-    elif module.params["state"] == "absent":
-        absent_state(w)
-
 
 def modification_state(w):
-    """TODO"""
+    """Execute modification state logic."""
     absent_state(w)
 
 
 def creation_state(w: wrapper.Wrapper):
     """Execute creation state logic."""
+    module = w.module
+    params = module.params
+
+    if any(params[k] is None for k in ("project_id", "region", "plan")):
+        module.fail_json(msg="Missing required options for server creation.")
+
+    if module.check_mode:
+        module.exit_json(changed=True)
+
     server = create_server(w)
 
     if w.module.params["state"] == "active":

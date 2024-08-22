@@ -148,7 +148,6 @@ class Wrapper:
 
     def create_resource(
         self,
-        required_params: Sequence[str],
         name: str,
         req: Request,
         normalize: bool = True,
@@ -156,7 +155,6 @@ class Wrapper:
         """Create a new resource.
 
         Args:
-            required_params(Sequence[str]): required module parameters.
             name(str): name of the resource.
             req(Request): Client request data.
             normalize(bool): normalize the resource after creating it.
@@ -168,16 +166,6 @@ class Wrapper:
         Returns:
             dict: created resource.
         """
-
-        params = self.module.params
-
-        if any(params[k] is None for k in required_params):
-            raise ParameterError(
-                f"Missing required options for {name} resource creation."
-            )
-
-        if self.module.check_mode:
-            self.module.exit_json(changed=True)
 
         status, resp = self.api_client.send_request(
             req.method, req.url, req.timeout, **req.params
