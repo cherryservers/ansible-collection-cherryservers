@@ -337,33 +337,25 @@ def get_server(w: wrapper.Wrapper) -> Optional[dict]:
     """
 
     module = w.module
-    params = module.params
     server = None
 
     try:
-        if params["id"] is not None:
-            return w.get_resource_by_id(
-                wrapper.Request(
-                    "GET", f"servers/{params['id']}", constants.SERVER_TIMEOUT, {}
-                ),
-                "server",
-            )
-
-        servers = w.get_resources(
-            wrapper.Request(
-                "GET",
-                f"projects/{params['project_id']}/servers",
-                constants.SERVER_TIMEOUT,
-                {},
-            ),
-            "server",
-            ("hostname", "id"),
+        req_by_id = wrapper.Request(
+            "GET", f"servers/{module.params['id']}", constants.SERVER_TIMEOUT, {}
         )
-        if len(servers) > 1:
-            module.fail_json(msg=f"More than one matching server found: {servers}")
-        if len(servers) == 1:
-            server = servers[0]
+        req_by_matching_keys = wrapper.Request(
+            "GET",
+            f"projects/{module.params['project_id']}",
+            constants.SERVER_TIMEOUT,
+            {},
+        )
+
+        server = w.get_resource(
+            req_by_id, req_by_matching_keys, ("hostname", "id"), "server"
+        )
     except wrapper.APIError as e:
+        module.fail_json(msg=str(e))
+    except wrapper.ParameterError as e:
         module.fail_json(msg=str(e))
 
     return server
@@ -411,7 +403,7 @@ def create_server(w: wrapper.Wrapper) -> Optional[dict]:
             False,
         )
         return server
-    except wrapper.MissingParameterError as e:
+    except wrapper.ParameterError as e:
         module.fail_json(msg=str(e))
     except wrapper.APIError as e:
         module.fail_json(msg=str(e))

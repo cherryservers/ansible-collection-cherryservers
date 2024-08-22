@@ -26,7 +26,7 @@ class APIError(Exception):
         self.message = message
 
 
-class MissingParameterError(Exception):
+class ParameterError(Exception):
     """Missing required module arguments."""
 
     def __init__(self, message: str):
@@ -56,8 +56,10 @@ class Wrapper:
     """Cherry Servers client resource wrapper.
 
     Methods:
-        get_resource_by_id(req: Request, name: str) -> Optional[dict]: retrieve a resource by its ID.
-        create_resource(required_params: Sequence[str], name: str, req: Request, normalize: bool = True) -> dict:
+        get_resource_by_id(req: Request, name: str) -> Optional[dict]:
+         retrieve a resource by its ID.
+        create_resource(required_params: Sequence[str], name: str,
+         req: Request, normalize: bool = True) -> dict:
             create a new Cherry Servers resource.
     """
 
@@ -70,6 +72,35 @@ class Wrapper:
         self.api_client = api_client
         self.module = module
         self.normalization_fun = normalization_fun
+
+    def get_resource(
+        self,
+        req_by_id: Request,
+        req_by_matching: Request,
+        matching_keys: Sequence[str],
+        name: str,
+    ) -> Optional[dict]:
+        """Retrieve a Cherry Servers resource.
+
+        Try to retrieve a Cherry Servers resource by its ID, and if ID
+        is not available, retrieve by searching for resources matching specified module
+        parameter keys.
+        """
+        params = self.module.params
+
+        if params["id"] is not None:
+            return self.get_resource_by_id(req_by_id, name)
+
+        resources = self.get_resources_by_matching_keys(
+            req_by_matching,
+            name,
+            matching_keys,
+        )
+        if len(resources) > 1:
+            raise ParameterError(f"Multiple matching {name}s found")
+        if len(resources) == 1:
+            return resources[0]
+        return None
 
     def get_resource_by_id(self, req: Request, name: str) -> Optional[dict]:
         """Retrieve a resource by its ID."""
@@ -84,7 +115,9 @@ class Wrapper:
             return self.normalization_fun(resp)
         return None
 
-    def get_resources(self, req: Request, name: str, keys: Sequence[str]) -> List[dict]:
+    def get_resources_by_matching_keys(
+        self, req: Request, name: str, keys: Sequence[str]
+    ) -> List[dict]:
         """Find resources that match module parameters.
 
         Args:
@@ -139,7 +172,7 @@ class Wrapper:
         params = self.module.params
 
         if any(params[k] is None for k in required_params):
-            raise MissingParameterError(
+            raise ParameterError(
                 f"Missing required options for {name} resource creation."
             )
 
