@@ -24,11 +24,11 @@ options:
         description:
             - The state of the server.
             - V(present) will ensure the server exists.
-            - V(active) will ensure the server exists and wait for it to become active.
+            - V(active) will ensure the server exists and is active.
             - V(absent) will ensure the server doesn't exist.
         choices: ['present', 'active', 'absent']
         type: str
-        default: present
+        default: active
     id:
         description:
             - ID of the server.
@@ -40,28 +40,27 @@ options:
             - The ID of the project the server belongs to.
             - Required if not O(state=absent) and server doesn't exist.
             - Required if O(id) is not provided.
+            - Cannot be updated after creation.
         type: str
     plan:
         description:
             - Slug of the server plan.
             - Required if not O(state=absent) and server doesn't exist.
-            - Only used on server creation.
+            - Cannot be updated after creation.
         type: str
     image:
         description:
             - Slug of the server image.
-            - Only used on server creation.
         type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
-            - Only used on server creation.
         type: int
     region:
         description:
             - Slug of the server region.
             - Required if not O(state=absent) and server doesn't exist.
-            - Only used on server creation.
+            - Cannot be updated after creation.
         type: str
     hostname:
         description:
@@ -72,19 +71,19 @@ options:
     ssh_keys:
         description:
             - SSH key IDs, that are added to the server.
-            - Only used on server creation and for rescue mode.
         type: list
         elements: str
     extra_ip_addresses:
         description:
-            - Extra floating IP IDs to add to the server.
-            - Only used on server creation.
+            - Extra floating IP IDs that are added to the server.
+            - Cannot be updated after creation.
+            - If you wish to add extra floating IPs to a server after it has been created,
+            - use the C(floating_ip) module instead.
         type: list
         elements: str
     user_data:
         description:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
-            - Only used on server creation.
         type: str
     tags:
         description:
@@ -101,7 +100,7 @@ options:
         type: int
     active_timeout:
         description:
-            - How long to wait for server to become active, in seconds.
+            - How long to wait for the server to become active, in seconds.
         type: int
         default: 1800
 
@@ -455,7 +454,7 @@ def get_module_args() -> dict:
         {
             "state": {
                 "choices": ["present", "active", "absent"],
-                "default": "present",
+                "default": "active",
                 "type": "str",
             },
             "id": {"type": "int"},
