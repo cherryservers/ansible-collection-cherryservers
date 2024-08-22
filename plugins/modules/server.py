@@ -17,7 +17,10 @@ short_description: Create and manage servers on Cherry Servers
 version_added: "0.1.0"
 
 description:
-    - TBD.
+    - Create, update and delete servers on Cherry Servers.
+    - If you want to manage an existing server, set O(id) along with state and other desired options.
+    - If you set options that require rebuilding an existing server,
+    - it will become temporarily inactive.
 
 options:
     state:
@@ -32,45 +35,44 @@ options:
     id:
         description:
             - ID of the server.
-            - Used to identify existing servers.
-            - Required if server exists and O(hostname) is not provided.
+            - Required if server exists.
         type: int
     project_id:
         description:
             - The ID of the project the server belongs to.
-            - Required if not O(state=absent) and server doesn't exist.
-            - Required if O(id) is not provided.
-            - Cannot be updated after creation.
+            - Required if server doesn't exist.
+            - Cannot be set for an existing server.
         type: str
     plan:
         description:
             - Slug of the server plan.
-            - Required if not O(state=absent) and server doesn't exist.
-            - Cannot be updated after creation.
+            - Required if server doesn't exist.
+            - Cannot be set for an existing server.
         type: str
     image:
         description:
             - Slug of the server image.
+            - Setting this option for an existing server requires rebuilding.
         type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
+            - Setting this option for an existing server requires rebuilding.
         type: int
     region:
         description:
             - Slug of the server region.
-            - Required if not O(state=absent) and server doesn't exist.
-            - Cannot be updated after creation.
+            - Required if server doesn't exist.
+            - Cannot be set for an existing server.
         type: str
     hostname:
         description:
             - Server hostname.
-            - Required if server exists and O(id) is not provided.
-            - This can be used to identify existing servers together with O(project_id), but O(id) takes precedence.
         type: str
     ssh_keys:
         description:
             - SSH key IDs, that are added to the server.
+            - Setting this option for an existing server requires rebuilding.
         type: list
         elements: str
     extra_ip_addresses:
@@ -84,6 +86,7 @@ options:
     user_data:
         description:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
+            - Setting this option for an existing server requires rebuilding.
         type: str
     tags:
         description:
@@ -92,11 +95,13 @@ options:
     spot_market:
         description:
             - Whether the server is a spot instance.
+            - Cannot be updated after creation.
         type: bool
         default: false
     storage_id:
         description:
             - Elastic block storage ID.
+            - TODO.
         type: int
     active_timeout:
         description:
