@@ -273,7 +273,6 @@ from ..module_utils import client
 from ..module_utils import common
 from ..module_utils import constants
 from ..module_utils import normalizers
-from ..module_utils import wrapper
 
 
 def run_module():
@@ -286,81 +285,26 @@ def run_module():
     )
 
     api_client = client.CherryServersClient(module)
-    w = wrapper.Wrapper(api_client, module, normalizers.normalize_server)
 
     if module.params["id"]:
-        modification_state(w)
+        modification_state(api_client, module)
     else:
-        creation_state(w)
+        creation_state(api_client, module)
 
 
-def modification_state(w):
+def modification_state(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule
+):
     """Execute modification state logic."""
-    absent_state(w)
+    absent_state(api_client, module)
 
 
-def creation_state(w: wrapper.Wrapper):
+def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
     """Execute creation state logic."""
-    module = w.module
     params = module.params
 
     if any(params[k] is None for k in ("project_id", "region", "plan")):
         module.fail_json(msg="Missing required options for server creation.")
-
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    server = create_server(w)
-
-    if w.module.params["state"] == "active":
-        wait_for_active(server, w)
-
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
-
-    server = get_server(w, server["id"])
-
-    w.module.exit_json(changed=True, cherryservers_server=server)
-
-
-def absent_state(w: wrapper.Wrapper):
-    """Execute deletion state logic."""
-    server = get_server(w, w.module.params["id"])
-    if server:
-        if w.module.check_mode:
-            w.module.exit_json(changed=True)
-        delete_server(w, server["id"])
-        w.module.exit_json(changed=True)
-    else:
-        w.module.exit_json(changed=False)
-
-
-def get_server(w: wrapper.Wrapper, server_id: int) -> Optional[dict]:
-    """Retrieve a normalized Cherry Servers server resource."""
-    server = None
-    try:
-        server = w.get_resource_by_id(
-            wrapper.Request(
-                "GET", f"servers/{server_id}", constants.SERVER_TIMEOUT, {}
-            ),
-            "server",
-        )
-    except wrapper.APIError as e:
-        w.module.fail_json(msg=str(e))
-
-    return server
-
-
-def create_server(w: wrapper.Wrapper) -> Optional[dict]:
-    """Create a new server.
-
-    Will fail the module if an error occurs.
-
-    Returns:
-        Optional[dict]: Server resource.
-    """
-    module = w.module
-    params = module.params
 
     if params["user_data"] is not None:
         try:
@@ -368,68 +312,111 @@ def create_server(w: wrapper.Wrapper) -> Optional[dict]:
         except binascii.Error as e:
             module.fail_json(msg=f"Invalid user_data string: {e}")
 
-    try:
-        server = w.create_resource(
-            ("plan", "region", "project_id"),
-            "server",
-            wrapper.Request(
-                method="POST",
-                url=f"projects/{params.get('project_id')}/servers",
-                timeout=constants.SERVER_TIMEOUT,
-                params={
-                    "plan": params["plan"],
-                    "image": params["image"],
-                    "os_partition_size": params["os_partition_size"],
-                    "region": params["region"],
-                    "hostname": params["hostname"],
-                    "ssh_keys": params["ssh_keys"],
-                    "ip_addresses": params["extra_ip_addresses"],
-                    "user_data": params["user_data"],
-                    "spot_market": params["spot_market"],
-                    "storage_id": params["storage_id"],
-                    "tags": params["tags"],
-                },
-            ),
-            False,
-        )
-        return server
-    except wrapper.ParameterError as e:
-        module.fail_json(msg=str(e))
-    except wrapper.APIError as e:
-        module.fail_json(msg=str(e))
+    if module.check_mode:
+        module.exit_json(changed=True)
 
+    server = create_server(api_client, module)
+
+    if module.params["state"] == "active":
+        wait_for_active(server, api_client, module)
+
+    # We need to do another GET request, because the object returned from POST
+    # doesn't contain all the necessary data.
+
+    server = get_server(api_client, module, server["id"])
+
+    module.exit_json(changed=True, cherryservers_server=server)
+
+
+def absent_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Execute deletion state logic."""
+    server = get_server(api_client, module, module.params["id"])
+    if server:
+        if module.check_mode:
+            module.exit_json(changed=True)
+        delete_server(api_client, module, server["id"])
+        module.exit_json(changed=True)
+    else:
+        module.exit_json(changed=False)
+
+
+def get_server(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, server_id: int
+) -> Optional[dict]:
+    """Retrieve a normalized Cherry Servers server resource."""
+    status, resp = api_client.send_request(
+        "GET", f"servers/{server_id}", constants.SERVER_TIMEOUT
+    )
+    if status not in (200, 404):
+        module.fail_json(msg=f"Error getting server: {resp}")
+    if status == 200:
+        return normalizers.normalize_server(resp)
     return None
 
 
-def wait_for_active(server: dict, w: wrapper.Wrapper):
+def create_server(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule
+) -> Optional[dict]:
+    """Create a new server.
+
+    Will fail the module if an error occurs.
+
+    Returns:
+        Optional[dict]: Normalized server resource.
+    """
+    params = module.params
+
+    status, resp = api_client.send_request(
+        "POST",
+        f"projects/{params.get('project_id')}/servers",
+        constants.SERVER_TIMEOUT,
+        **{
+            "plan": params["plan"],
+            "image": params["image"],
+            "os_partition_size": params["os_partition_size"],
+            "region": params["region"],
+            "hostname": params["hostname"],
+            "ssh_keys": params["ssh_keys"],
+            "ip_addresses": params["extra_ip_addresses"],
+            "user_data": params["user_data"],
+            "spot_market": params["spot_market"],
+            "storage_id": params["storage_id"],
+            "tags": params["tags"],
+        },
+    )
+
+    if status != 201:
+        module.fail_json(msg=f"Failed to create server: {resp}")
+
+    return normalizers.normalize_server(resp)
+
+
+def wait_for_active(
+    server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
+):
     """Wait for server to become active."""
     time_passed = 0
 
-    try:
-        while server["state"] != "active":
-            resp = get_server(w, server["id"])
-            server = resp
+    while server["state"] != "active":
+        resp = get_server(api_client, module, server["id"])
+        server = resp
 
-            time.sleep(10)
-            time_passed += 10
+        time.sleep(10)
+        time_passed += 10
 
-            if time_passed >= w.module.params["active_timeout"]:
-                w.module.fail_json(msg="Timed out waiting for server to become active")
-    except wrapper.APIError as e:
-        w.module.fail_json(msg=str(e))
+        if time_passed >= module.params["active_timeout"]:
+            module.fail_json(msg="Timed out waiting for server to become active")
 
 
-def delete_server(w: wrapper.Wrapper, server_id: int):
+def delete_server(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, server_id: int
+):
     """Delete a server."""
-    try:
-        w.delete_resource(
-            wrapper.Request(
-                "DELETE", f"servers/{server_id}", constants.SERVER_TIMEOUT, {}
-            ),
-            "server",
-        )
-    except wrapper.APIError as e:
-        w.module.fail_json(msg=str(e))
+    status, resp = api_client.send_request(
+        "DELETE", f"servers/{server_id}", constants.SERVER_TIMEOUT
+    )
+    if status != 204:
+        module.fail_json(f"Failed to delete server: {resp}")
 
 
 def get_module_args() -> dict:
