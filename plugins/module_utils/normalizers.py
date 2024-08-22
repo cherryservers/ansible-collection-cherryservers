@@ -70,7 +70,7 @@ def normalize_server(server: dict) -> dict:
         "name": server["name"],
         "password": server.get("password", None),
         "plan": server["plan"]["slug"],
-        "project_id": server["id"],
+        "project_id": server["project"]["id"],
         "region": server["region"]["slug"],
         "spot_market": server["spot_instance"],
         "ssh_keys": server["ssh_keys"],
