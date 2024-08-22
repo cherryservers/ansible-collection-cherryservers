@@ -283,19 +283,25 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
-        required_if=[
-            ("state", "absent", ("id", "hostname"), True),
-            ("state", "absent", ("id", "project_id"), True),
-        ],
     )
 
     api_client = client.CherryServersClient(module)
     w = wrapper.Wrapper(api_client, module, normalizers.normalize_server)
 
+    if module.params["id"]:
+        modification_state(w)
+    else:
+        creation_state(w)
+
     if module.params["state"] in ("present", "active"):
         creation_state(w)
     elif module.params["state"] == "absent":
         absent_state(w)
+
+
+def modification_state(w):
+    """TODO"""
+    absent_state(w)
 
 
 def creation_state(w: wrapper.Wrapper):
@@ -308,22 +314,14 @@ def creation_state(w: wrapper.Wrapper):
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
-    try:
-        server = w.get_resource_by_id(
-            wrapper.Request(
-                "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT, {}
-            ),
-            "server",
-        )
-    except wrapper.APIError as e:
-        w.module.fail_json(msg=str(e))
+    server = get_server(w, server["id"])
 
     w.module.exit_json(changed=True, cherryservers_server=server)
 
 
 def absent_state(w: wrapper.Wrapper):
     """Execute deletion state logic."""
-    server = get_server(w)
+    server = get_server(w, w.module.params["id"])
     if server:
         if w.module.check_mode:
             w.module.exit_json(changed=True)
@@ -333,34 +331,18 @@ def absent_state(w: wrapper.Wrapper):
         w.module.exit_json(changed=False)
 
 
-def get_server(w: wrapper.Wrapper) -> Optional[dict]:
-    """Returns a server resource that matches the module specification.
-
-    Returns:
-        Optional[dict]: Server resource or None if no matching resource is found.
-    """
-
-    module = w.module
+def get_server(w: wrapper.Wrapper, server_id: int) -> Optional[dict]:
+    """Retrieve a normalized Cherry Servers server resource."""
     server = None
-
     try:
-        req_by_id = wrapper.Request(
-            "GET", f"servers/{module.params['id']}", constants.SERVER_TIMEOUT, {}
-        )
-        req_by_matching_keys = wrapper.Request(
-            "GET",
-            f"projects/{module.params['project_id']}",
-            constants.SERVER_TIMEOUT,
-            {},
-        )
-
-        server = w.get_resource(
-            req_by_id, req_by_matching_keys, ("hostname", "id"), "server"
+        server = w.get_resource_by_id(
+            wrapper.Request(
+                "GET", f"servers/{server_id}", constants.SERVER_TIMEOUT, {}
+            ),
+            "server",
         )
     except wrapper.APIError as e:
-        module.fail_json(msg=str(e))
-    except wrapper.ParameterError as e:
-        module.fail_json(msg=str(e))
+        w.module.fail_json(msg=str(e))
 
     return server
 
@@ -421,12 +403,7 @@ def wait_for_active(server: dict, w: wrapper.Wrapper):
 
     try:
         while server["state"] != "active":
-            resp = w.get_resource_by_id(
-                wrapper.Request(
-                    "GET", f"servers/{server['id']}", constants.SERVER_TIMEOUT, {}
-                ),
-                "server",
-            )
+            resp = get_server(w, server["id"])
             server = resp
 
             time.sleep(10)
