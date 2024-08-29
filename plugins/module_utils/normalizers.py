@@ -62,6 +62,12 @@ def normalize_server(server: dict) -> dict:
             }
         )
 
+    ssh_keys = []
+    for ssh_key in server.get("ssh_keys", []):
+        ssh_keys.append(
+            ssh_key["id"]
+        )
+
     return {
         "hostname": server.get("hostname", None),
         "id": server.get("id", None),
@@ -72,7 +78,7 @@ def normalize_server(server: dict) -> dict:
         "project_id": server.get("project", {}).get("id", None),
         "region": server.get("region", {}).get("slug", None),
         "spot_market": server.get("spot_instance", None),
-        "ssh_keys": server.get("ssh_keys", None),
+        "ssh_keys": ssh_keys,
         "status": server.get("status", None),
         "storage_id": server.get("storage", {}).get("id", None),
         "tags": server.get("tags", {}),

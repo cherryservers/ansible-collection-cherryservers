@@ -175,8 +175,46 @@ cherryservers_floating_ips:
         env: "dev"
 """
 
+from ansible.module_utils import basic as utils
+from ..module_utils import common
+
+
+
 def run_module():
     """Execute the ansible module."""
+
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+        required_one_of=[("project_id", "id")],
+    )
+
+
+def get_module_args() -> dict:
+    """Return a dictionary with the modules argument specification."""
+    module_args = common.get_base_argument_spec()
+
+    module_args.update(
+        {
+            "tags": {
+                "type": "dict",
+            },
+            "region": {"type": "str"},
+            "hostname": {"type": "str"},
+            "plan": {"type": "str"},
+            "image": {"type": "str"},
+            "ssh_keys": {"type": "list", "elements": "str", "no_log": False},
+            "id": {"type": "int"},
+            "project_id": {"type": "str"},
+            "spot_market": {"type": "bool"},
+            "storage_id": {"type": "int"},
+        }
+    )
+
+    return module_args
+
 
 def main():
     """Main function."""
