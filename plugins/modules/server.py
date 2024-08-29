@@ -362,7 +362,7 @@ def reinstall_server(
         constants.SERVER_TIMEOUT,
         **reinstall_req,
     )
-    if status != 201:
+    if status != 200:
         module.fail_json(msg=f"Failed to update server: {resp}")
 
     if module.params["state"] == "active":
