@@ -115,11 +115,6 @@ options:
             - Reinstalling will make the server temporarily inactive.
         type: bool
         default: false
-    password:
-        description:
-            - Required if O(allow_reinstall=true).
-            - Setting this option for an existing server requires O(allow_reinstall=true).
-            - Cannot be set for a server that doesn't exist.
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
 
@@ -295,7 +290,6 @@ def run_module():
         supports_check_mode=True,
         required_if=[
             ("state", "absent", "id", True),
-            ("allow_reinstall", True, "password", True),
         ],
     )
 
@@ -395,7 +389,7 @@ def get_rebuilding_server_update_request(
         if params[k] is not None and params[k] != server[k]:
             req[k] = params[k]
             changed = True
-    req["password"] = params["password"]
+    req["password"] = common.generate_password(16)
 
     return req, changed
 

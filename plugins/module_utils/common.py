@@ -14,6 +14,8 @@ Functions:
         Find the resource that matches the modules identifying parameters.
 
 """
+import random
+import string
 from collections.abc import Sequence
 from typing import List
 
@@ -30,6 +32,32 @@ def get_base_argument_spec() -> dict:
             "fallback": (utils.env_fallback, ["CHERRY_AUTH_TOKEN", "CHERRY_AUTH_KEY"]),
         },
     }
+
+
+def generate_password(length: int) -> str:
+    """Generate a random password.
+
+    The password is guaranteed to:
+        1. Be at least 8 characters long, but no longer than 24 characters.
+        2. Have at least one lowercase letter.
+        3. Have at least one uppercase letter, that is not the first character.
+        4. Have at least one digit, that is not the last character.
+        5. Not have any of ' " ` ! $ % & ; % #
+    """
+    if length < 8:
+        length = 8
+
+    if length > 24:
+        length = 24
+
+    lowercase = random.choice(string.ascii_lowercase)
+    uppercase = random.choice(string.ascii_uppercase)
+    digit = random.choice(string.digits)
+    remaining = "".join(
+        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+        for _ in range(length - 3)
+    )
+    return f"{lowercase}{uppercase}{digit}{remaining}"
 
 
 def find_resources(
