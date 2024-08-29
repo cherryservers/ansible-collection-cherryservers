@@ -55,7 +55,7 @@ def generate_password(length: int) -> str:
     digit = random.choice(string.digits)
     remaining = "".join(
         random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-        for _ in range(length - 3)
+        for _1 in range(length - 3)
     )
     return f"{lowercase}{uppercase}{digit}{remaining}"
 

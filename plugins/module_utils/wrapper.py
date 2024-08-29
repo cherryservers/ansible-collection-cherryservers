@@ -11,8 +11,7 @@ Classes:
 
 from collections.abc import Sequence, Callable
 from dataclasses import dataclass
-from optparse import Option
-from typing import Union, Optional, List
+from typing import Optional, List
 
 from ansible.module_utils import basic as utils
 from . import client

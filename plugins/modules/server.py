@@ -155,7 +155,7 @@ EXAMPLES = r"""
     tags:
       env: "test"
   register: result
-  
+
 - name: Update a server
   local.cherryservers.server:
     state: "active"
@@ -165,7 +165,7 @@ EXAMPLES = r"""
     active_timeout: 600
     hostname: "upd-test"
   register: result
-  
+
 - name: Get user data
   ansible.builtin.slurp:
     src: "/home/mypath/cloud-init.yaml"
@@ -182,8 +182,8 @@ EXAMPLES = r"""
     ssh_keys: ["7630"]
     user_data: "{{ userdata['content']}}"
     allow_reinstall: true
-  register: result 
-  
+  register: result
+
 - name: Delete a server
   local.cherryservers.server:
     state: "absent"

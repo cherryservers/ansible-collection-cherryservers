@@ -51,7 +51,7 @@ def normalize_server(server: dict) -> dict:
     """Normalize Cherry Servers server resource."""
 
     ips = []
-    for ip in server.get("ip_addresses",[]):
+    for ip in server.get("ip_addresses", []):
         ips.append(
             {
                 "id": ip.get("id", None),
