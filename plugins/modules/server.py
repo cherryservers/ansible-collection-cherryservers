@@ -208,10 +208,10 @@ cherryservers_server:
       type: int
       sample: "123456"
     image:
-      description: Slug of the server operating system.
+      description: Image of the server operating system.
       returned: always
       type: str
-      sample: "fedora_39_64bit"
+      sample: "Fedora 39 64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
