@@ -321,7 +321,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True,
         required_if=[
-            ("state", "absent", "id", True),
+            ("state", "absent", ["id"], True),
         ],
     )
 
