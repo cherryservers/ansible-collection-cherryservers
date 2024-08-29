@@ -68,7 +68,6 @@ def normalize_server(server: dict) -> dict:
         "image": server.get("image", None),
         "ip_addresses": ips,
         "name": server.get("name", None),
-        "password": server.get("password", None),
         "plan": server.get("plan", {}).get("name", None),
         "project_id": server.get("project", {}).get("id", None),
         "region": server.get("region", {}).get("slug", None),
@@ -77,5 +76,4 @@ def normalize_server(server: dict) -> dict:
         "status": server.get("status", None),
         "storage_id": server.get("storage", {}).get("id", None),
         "tags": server.get("tags", {}),
-        "username": server.get("username", None),
     }

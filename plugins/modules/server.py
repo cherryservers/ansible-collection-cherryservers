@@ -248,11 +248,6 @@ cherryservers_server:
       returned: always
       type: str
       sample: "Cloud VPS 1"
-    password:
-      description: Server password credential.
-      returned: if exists. Not available while server is pending and is scrubbed after 24 hours.
-      type: str
-      sample: "K85uf6Kx"
     plan:
       description: Slug of the server plan.
       returned: always
@@ -295,11 +290,6 @@ cherryservers_server:
       type: dict
       sample:
         env: "dev"
-    username:
-      description: Server username credential.
-      returned: if exists. Not available while server is pending and is scrubbed after 24 hours.
-      type: str
-      sample: "root"
 """
 
 import base64
