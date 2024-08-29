@@ -57,6 +57,8 @@ options:
         description:
             - Server OS partition size in GB.
             - Setting this option for an existing server requires O(allow_reinstall=true).
+            - This option is not tracked in server state, so setting it for an existing server
+            - will always cause a re-install.
         type: int
     region:
         description:
@@ -86,6 +88,8 @@ options:
         description:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
             - Setting this option for an existing server requires O(allow_reinstall=true).
+            - This option is not tracked in server state, so setting it for an existing server
+            - will always cause a re-install.
         type: str
     tags:
         description:
@@ -309,7 +313,7 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
     """Execute update state logic."""
     server = get_server(api_client, module, module.params["id"])
     basic_req, basic_changed = get_basic_server_update_request(module.params, server)
-    rebuild_req, rebuild_changed = get_rebuilding_server_update_request(
+    rebuild_req, rebuild_changed = get_reinstall_server_update_request(
         module.params, server
     )
     changed = basic_changed or rebuild_changed
@@ -378,18 +382,24 @@ def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, b
     return req, changed
 
 
-def get_rebuilding_server_update_request(
+def get_reinstall_server_update_request(
     params: dict, server: dict
 ) -> Tuple[dict, bool]:
     """TODO."""
     req = {}
     changed = False
 
-    for k in ("image", "os_partition_size", "ssh_keys", "user_data"):
+    for k in ("user_data", "os_partition_size"):
+        if params[k] is not None:
+            req[k] = params[k]
+            changed = True
+
+    for k in ("image", "ssh_keys"):
         if params[k] is not None and params[k] != server[k]:
             req[k] = params[k]
             changed = True
     req["password"] = common.generate_password(16)
+    req["type"] = "reinstall"
 
     return req, changed
 
