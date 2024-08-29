@@ -315,7 +315,9 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
     """Execute update state logic."""
     server = get_server(api_client, module, module.params["id"])
     basic_req, basic_changed = get_basic_server_update_request(module.params, server)
-    rebuild_req, rebuild_changed = get_rebuilding_server_update_request(module.params, server)
+    rebuild_req, rebuild_changed = get_rebuilding_server_update_request(
+        module.params, server
+    )
     changed = basic_changed or rebuild_changed
 
     if module.check_mode:
@@ -327,26 +329,46 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
         if not changed:
             module.exit_json(changed=False, cherryservers_server=server)
 
-    status, resp = api_client.send_request(
-        "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
-    )
-    if status != 201:
-        module.fail_json(msg=f"Failed to update server: {resp}")
-
-    if module.params["allow_reinstall"]:
+    if basic_changed:
         status, resp = api_client.send_request(
-            "POST", f"servers/{server['id']}/actions", constants.SERVER_TIMEOUT, **rebuild_req
+            "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
         )
         if status != 201:
             module.fail_json(msg=f"Failed to update server: {resp}")
-    elif rebuild_changed:
-        module.fail_json(msg="The options you've selected require server reinstalling.")
+
+    if rebuild_changed:
+        if module.params["allow_reinstall"]:
+            reinstall_server(api_client, module, server, rebuild_req)
+        else:
+            module.fail_json(
+                msg="The options you've selected require server reinstalling."
+            )
 
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
     server = get_server(api_client, module, module.params["id"])
     module.exit_json(changed=True, cherryservers_server=server)
+
+
+def reinstall_server(
+    api_client: client.CherryServersClient,
+    module: utils.AnsibleModule,
+    server: dict,
+    reinstall_req: dict,
+):
+    """TODO."""
+    status, resp = api_client.send_request(
+        "POST",
+        f"servers/{server['id']}/actions",
+        constants.SERVER_TIMEOUT,
+        **reinstall_req,
+    )
+    if status != 201:
+        module.fail_json(msg=f"Failed to update server: {resp}")
+
+    if module.params["state"] == "active":
+        wait_for_active(server, api_client, module)
 
 
 def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
