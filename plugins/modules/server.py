@@ -141,7 +141,7 @@ EXAMPLES = r"""
 - name: Read user data
   ansible.builtin.slurp:
     src: "/home/mypath/cloud-init.yaml"
-  register: user_data_file
+  register: userdata
 - name: Create a server with more options
   local.cherryservers.server:
     project_id: "213668"
@@ -151,10 +151,38 @@ EXAMPLES = r"""
     ssh_keys: ["1234"]
     hostname: "cantankerous-crow"
     extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
-    user_data: "{{ user_data_file['content'] }}"
+    user_data: "{{ userdata['content'] }}"
     tags:
       env: "test"
   register: result
+  
+- name: Update a server
+  local.cherryservers.server:
+    state: "active"
+    id: 593462
+    tags:
+      env: "upd-test"
+    active_timeout: 600
+    hostname: "upd-test"
+  register: result
+  
+- name: Get user data
+  ansible.builtin.slurp:
+    src: "/home/mypath/cloud-init.yaml"
+  register: userdata
+- name: Update a server with rebuilding
+  local.cherryservers.server:
+    state: "active"
+    id: 593462
+    hostname: "test"
+    tags:
+      env: "test-upd"
+    active_timeout: 600
+    image: "fedora_39_64bit"
+    ssh_keys: ["7630"]
+    user_data: "{{ userdata['content']}}"
+    allow_reinstall: true
+  register: result 
   
 - name: Delete a server
   local.cherryservers.server:
@@ -251,11 +279,11 @@ cherryservers_server:
       type: list
       elements: int
       sample: [0000, 1111]
-    state:
-      description: Server state.
+    status:
+      description: Server status.
       returned: always
       type: str
-      sample: "active"
+      sample: "deploying"
     storage_id:
       description: Server storage block ID. Null if doesn't exist.
       returned: always
@@ -366,6 +394,7 @@ def reinstall_server(
         module.fail_json(msg=f"Failed to update server: {resp}")
 
     if module.params["state"] == "active":
+        server["status"] = resp.get("status", None)
         wait_for_active(server, api_client, module)
 
 
@@ -502,7 +531,7 @@ def wait_for_active(
     """Wait for server to become active."""
     time_passed = 0
 
-    while server["state"] != "active":
+    while server["status"] != "deployed":
         resp = get_server(api_client, module, server["id"])
         server = resp
 

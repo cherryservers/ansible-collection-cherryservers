@@ -74,7 +74,7 @@ def normalize_server(server: dict) -> dict:
         "region": server.get("region", {}).get("slug", None),
         "spot_market": server.get("spot_instance", None),
         "ssh_keys": server.get("ssh_keys", None),
-        "state": server.get("state", None),
+        "status": server.get("status", None),
         "storage_id": server.get("storage", {}).get("id", None),
         "tags": server.get("tags", {}),
         "username": server.get("username", None),
