@@ -30,7 +30,7 @@ options:
         description:
             - The ID of the project the server belongs to.
             - Required if O(id) is not provided.
-        type: str
+        type: int
     plan:
         description:
             - Slug of the server plan.
@@ -47,11 +47,6 @@ options:
         description:
             - Server hostname.
         type: str
-    ssh_keys:
-        description:
-            - SSH key IDs, that are added to the server.
-        type: list
-        elements: str
     tags:
         description:
             - Server tags.
@@ -60,7 +55,6 @@ options:
         description:
             - Whether the server is a spot instance.
         type: bool
-        default: false
     storage_id:
         description:
             - Elastic block storage ID.
@@ -73,9 +67,40 @@ author:
     - Martynas Deveikis (@caliban0)
 """
 
+EXAMPLES = r"""
+- name: Get single server
+  local.cherryservers.server_info:
+    id: 593462
+  register: result
+
+- name: Get all project servers
+  local.cherryservers.server_info:
+    project_id: "213668"
+  register: result
+
+- name: 'Get all servers in the EU Nord-1 region, that have the env: test-upd tag'
+  local.cherryservers.server_info:
+    region: "eu_nord_1"
+    project_id: "213668"
+    tags:
+      env: "test-upd"
+  register: result
+
+- name: Get non existing server
+  local.cherryservers.server_info:
+    id: 999999
+  register: result
+
+- name: Get servers by plan
+  local.cherryservers.server_info:
+    project_id: "213668"
+    plan: cloud_vps_1
+  register: result
+"""
+
 RETURN = r"""
-cherryservers_floating_ips:
-  description: Floating IP data.
+cherryservers_servers:
+  description: Server data.
   returned: always
   type: list
   elements: dict
@@ -175,9 +200,12 @@ cherryservers_floating_ips:
         env: "dev"
 """
 
+from typing import List
 from ansible.module_utils import basic as utils
 from ..module_utils import common
-
+from ..module_utils import client
+from ..module_utils import normalizers
+from ..module_utils import constants
 
 
 def run_module():
@@ -190,6 +218,56 @@ def run_module():
         supports_check_mode=True,
         required_one_of=[("project_id", "id")],
     )
+
+    api_client = client.CherryServersClient(module)
+
+    if module.params["id"] is not None:
+        servers = get_single_server(api_client, module)
+    else:
+        servers = get_multiple_servers(api_client, module)
+
+    r = []
+
+    for server in servers:
+        server = normalizers.normalize_server(server)
+        if server_filter(module.params, server):
+            r.append(server)
+
+    module.exit_json(changed=False, cherryservers_servers=r)
+
+
+def get_single_server(api_client: client, module: utils.AnsibleModule) -> List[dict]:
+    """Get a single server from the Cherry Servers client.
+
+    This server is returned as a single dictionary entry in a list, for easier
+    compatibility with multiple server returning functionality.
+    """
+    status, resp = api_client.send_request(
+        "GET", f"servers/{module.params['id']}", constants.SERVER_TIMEOUT
+    )
+
+    servers = []
+
+    if status == 200:
+        servers.append(resp)
+    elif status != 404:
+        module.fail_json(msg=f"Unexpected client error: {resp}")
+
+    return servers
+
+
+def get_multiple_servers(api_client: client, module: utils.AnsibleModule) -> List[dict]:
+    """Get multiple servers from the Cherry Servers client."""
+    params = module.params
+
+    status, resp = api_client.send_request(
+        "GET", f"projects/{params['project_id']}/servers", constants.SERVER_TIMEOUT
+    )
+
+    if status not in (200, 404):
+        module.fail_json(msg=f"Unexpected client error: {resp}")
+
+    return resp
 
 
 def get_module_args() -> dict:
@@ -205,15 +283,39 @@ def get_module_args() -> dict:
             "hostname": {"type": "str"},
             "plan": {"type": "str"},
             "image": {"type": "str"},
-            "ssh_keys": {"type": "list", "elements": "str", "no_log": False},
             "id": {"type": "int"},
-            "project_id": {"type": "str"},
+            "project_id": {"type": "int"},
             "spot_market": {"type": "bool"},
             "storage_id": {"type": "int"},
         }
     )
 
     return module_args
+
+
+def server_filter(module_params: dict, server: dict) -> bool:
+    """Check if the server should be included in the response."""
+    if all(
+        module_params[k] is None or module_params[k] == server[k]
+        for k in (
+            "region",
+            "hostname",
+            "plan",
+            "image",
+            "id",
+            "project_id",
+            "spot_market",
+            "storage_id",
+        )
+    ) and (
+        module_params["tags"] is None
+        or all(
+            module_params["tags"][k] == server["tags"].get(k)
+            for k in module_params["tags"]
+        )
+    ):
+        return True
+    return False
 
 
 def main():
