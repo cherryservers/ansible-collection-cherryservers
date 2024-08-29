@@ -383,7 +383,10 @@ def reinstall_server(
     server: dict,
     reinstall_req: dict,
 ):
-    """TODO."""
+    """Re-install Cherry Servers server.
+
+    If re-installation fails, fail the module.
+    """
     status, resp = api_client.send_request(
         "POST",
         f"servers/{server['id']}/actions",
@@ -399,7 +402,16 @@ def reinstall_server(
 
 
 def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
-    """TODO."""
+    """Get Cherry Servers server update API request.
+
+    Check for differences between current server state and module options
+    and add the options that have diverged to the update request.
+
+    Returns:
+        Tuple[dict, bool]: A dictionary with the request parameters
+        and a boolean indicating whether there is any difference between the server state
+        and module options.
+    """
     req = {}
     changed = False
 
@@ -414,7 +426,18 @@ def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, b
 def get_reinstall_server_update_request(
     params: dict, server: dict
 ) -> Tuple[dict, bool]:
-    """TODO."""
+    """Get Cherry Servers server re-install API request.
+
+    Check for differences between current server state and module options
+    and add the options that have diverged to the re-installation request.
+    Options 'user_data' and 'os_partition_size' are not tracked in server state,
+    so any provided option will be considered different from state.
+
+    Returns:
+        Tuple[dict, bool]: A dictionary with the request parameters
+        and a boolean indicating whether there is any difference between the server state
+        and module options.
+    """
     req = {}
     changed = False
 
