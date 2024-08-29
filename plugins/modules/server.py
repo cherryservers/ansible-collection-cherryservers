@@ -51,12 +51,12 @@ options:
     image:
         description:
             - Slug of the server image.
-            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Setting this option for an existing server requires O(allow_reinstall=true).
         type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
-            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Setting this option for an existing server requires O(allow_reinstall=true).
         type: int
     region:
         description:
@@ -71,7 +71,7 @@ options:
     ssh_keys:
         description:
             - SSH key IDs, that are added to the server.
-            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Setting this option for an existing server requires O(allow_reinstall=true).
         type: list
         elements: str
     extra_ip_addresses:
@@ -85,7 +85,7 @@ options:
     user_data:
         description:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
-            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Setting this option for an existing server requires O(allow_reinstall=true).
         type: str
     tags:
         description:
@@ -107,18 +107,18 @@ options:
             - How long to wait for the server to become active, in seconds.
         type: int
         default: 1800
-    allow_rebuild:
+    allow_reinstall:
         description:
-            - Setting this to true will allow rebuilding the server.
+            - Setting this to true will allow reinstalling the server.
             - This parameter is not saved in server state and you need to set it to V(true)
             - every time you need to do so.
-            - Rebuilding will make the server temporarily inactive.
+            - Reinstalling will make the server temporarily inactive.
         type: bool
         default: false
     password:
         description:
-            - Required if O(allow_rebuild=true).
-            - Setting this option for an existing server requires O(allow_rebuild=true).
+            - Required if O(allow_reinstall=true).
+            - Setting this option for an existing server requires O(allow_reinstall=true).
             - Cannot be set for a server that doesn't exist.
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
@@ -295,7 +295,7 @@ def run_module():
         supports_check_mode=True,
         required_if=[
             ("state", "absent", "id", True),
-            ("allow_rebuild", True, "password", True),
+            ("allow_reinstall", True, "password", True),
         ],
     )
 
@@ -333,14 +333,14 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
     if status != 201:
         module.fail_json(msg=f"Failed to update server: {resp}")
 
-    if module.params["allow_rebuild"]:
+    if module.params["allow_reinstall"]:
         status, resp = api_client.send_request(
             "POST", f"servers/{server['id']}/actions", constants.SERVER_TIMEOUT, **rebuild_req
         )
         if status != 201:
             module.fail_json(msg=f"Failed to update server: {resp}")
     elif rebuild_changed:
-        module.fail_json(msg=f"The options you've selected require server rebuilding.")
+        module.fail_json(msg="The options you've selected require server reinstalling.")
 
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
@@ -525,6 +525,7 @@ def get_module_args() -> dict:
             "spot_market": {"type": "bool", "default": False},
             "storage_id": {"type": "int"},
             "active_timeout": {"type": "int", "default": 1800},
+            "allow_reinstall": {"type": "bool", "default": False},
         }
     )
 
