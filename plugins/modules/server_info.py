@@ -37,7 +37,7 @@ options:
         type: str
     image:
         description:
-            - Slug of the server image.
+            - Full server OS image name.
         type: str
     region:
         description:
