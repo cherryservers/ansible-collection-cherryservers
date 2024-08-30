@@ -1,0 +1,5 @@
+server_region: "eu_nord_1"
+server_plan: "cloud_vps_1"
+
+server_tags:
+  env: "server-info-test"
