@@ -360,7 +360,6 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
         if status != 201:
             module.fail_json(msg=f"Failed to update server: {resp}")
 
-
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
@@ -437,8 +436,10 @@ def get_reinstall_server_update_request(
             req[k] = params[k]
             changed = True
 
-    params["ssh_keys"].sort()
-    server["ssh_keys"].sort()
+    if params["ssh_keys"] is not None:
+        params["ssh_keys"].sort()
+    if server["ssh_keys"] is not None:
+        server["ssh_keys"].sort()
 
     for k in ("image", "ssh_keys"):
         if params[k] is not None and params[k] != server[k]:
