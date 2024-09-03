@@ -75,7 +75,7 @@ options:
             - SSH key IDs, that are added to the server.
             - Setting this option for an existing server requires O(allow_reinstall=true).
         type: list
-        elements: str
+        elements: int
     extra_ip_addresses:
         description:
             - Extra floating IP IDs that are added to the server.
@@ -148,7 +148,7 @@ EXAMPLES = r"""
     region: "eu_nord_1"
     plan: "cloud_vps_1"
     image: "fedora_39_64bit"
-    ssh_keys: ["1234"]
+    ssh_keys: [1234]
     hostname: "cantankerous-crow"
     extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
     user_data: "{{ userdata['content'] }}"
@@ -179,7 +179,7 @@ EXAMPLES = r"""
       env: "test-upd"
     active_timeout: 600
     image: "fedora_39_64bit"
-    ssh_keys: ["7630"]
+    ssh_keys: [7630]
     user_data: "{{ userdata['content']}}"
     allow_reinstall: true
   register: result
@@ -436,6 +436,9 @@ def get_reinstall_server_update_request(
             req[k] = params[k]
             changed = True
 
+    params["ssh_keys"].sort()
+    server["ssh_keys"].sort()
+
     for k in ("image", "ssh_keys"):
         if params[k] is not None and params[k] != server[k]:
             req[k] = params[k]
@@ -584,7 +587,7 @@ def get_module_args() -> dict:
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
-            "ssh_keys": {"type": "list", "elements": "str", "no_log": False},
+            "ssh_keys": {"type": "list", "elements": "int", "no_log": False},
             "extra_ip_addresses": {"type": "list", "elements": "str"},
             "user_data": {"type": "str"},
             "tags": {
