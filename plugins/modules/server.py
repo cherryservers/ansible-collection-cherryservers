@@ -345,13 +345,6 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
         if not changed:
             module.exit_json(changed=False, cherryservers_server=server)
 
-    if basic_changed:
-        status, resp = api_client.send_request(
-            "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
-        )
-        if status != 201:
-            module.fail_json(msg=f"Failed to update server: {resp}")
-
     if rebuild_changed:
         if module.params["allow_reinstall"]:
             reinstall_server(api_client, module, server, rebuild_req)
@@ -359,6 +352,14 @@ def update_state(api_client: client.CherryServersClient, module: utils.AnsibleMo
             module.fail_json(
                 msg="The options you've selected require server reinstalling."
             )
+
+    if basic_changed:
+        status, resp = api_client.send_request(
+            "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
+        )
+        if status != 201:
+            module.fail_json(msg=f"Failed to update server: {resp}")
+
 
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
