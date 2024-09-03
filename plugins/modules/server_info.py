@@ -86,11 +86,6 @@ EXAMPLES = r"""
       env: "test-upd"
   register: result
 
-- name: Get non existing server
-  local.cherryservers.server_info:
-    id: 999999
-  register: result
-
 - name: Get servers by plan
   local.cherryservers.server_info:
     project_id: "213668"
