@@ -1,0 +1,21 @@
+# All servers use these.
+server_region: "eu_nord_1"
+server_plan: "cloud_vps_1"
+
+# For the basic server test.
+server_update_hostname: "ansible-server-update-test"
+server_update_tags:
+  env: "ansible-server-update-test"
+
+# For full config server test.
+server_image: "fedora_39_64bit"
+server_hostname: "ansible-server-full-config-test"
+server_tags:
+  env: "ansible-server-full-config-test"
+server_active_timeout: 600
+server_user_data: "I2Nsb3VkLWNvbmZpZwp3cml0ZV9maWxlczoKICAtIHBhdGg6IC9oZWxsb193b3JsZC50eHQKICAgIGNvbnRlbnQ6IHwKICAgICAgSGVsbG8gV29ybGQKCnJ1bmNtZDoKICAtIGVjaG8gIkZpbGUgY3JlYXRlZCBzdWNjZXNzZnVsbHkhIgoK"
+
+server_reinstall_image: "ubuntu_22_04"
+
+fake_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFa0 example@example.com"
+fake_key_label: "ansible-server-test-key"

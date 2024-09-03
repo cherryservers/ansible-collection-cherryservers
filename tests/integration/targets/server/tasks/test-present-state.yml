@@ -1,0 +1,106 @@
+---
+- name: Run tests
+  block:
+    - name: test create server missing parameter
+      local.cherryservers.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        state: "present"
+      register: server
+      ignore_errors: true
+    - name: verify create server missing parameter
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
+    - name: test create server with check mode
+      local.cherryservers.server:
+        state: "present"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ server_region }}"
+        hostname: "ansible-test-present-server"
+        plan: "{{ server_plan }}"
+      register: server
+      check_mode: true
+    - name: verify create server with check mode
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: test no server actually created
+      local.cherryservers.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        hostname: "ansible-test-present-server"
+      register: result
+    - name: verify no server actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers | list | count == 0
+          - result is not changed
+
+    - name: test create server
+      local.cherryservers.server:
+        state: "present"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ server_region }}"
+        plan: "{{ server_plan }}"
+      register: server
+    - name: verify create server
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: test server actually created
+      local.cherryservers.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+      register: result
+    - name: verify server actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers | list | count == 1
+          - result.cherryservers_servers[0].project_id == cherryservers_project_id
+          - result.cherryservers_servers[0].region == server_region
+          - result.cherryservers_servers[0].plan == server_plan
+          - result.cherryservers_servers[0].image == "unknown"
+          - result.cherryservers_servers[0].status == "unknown"
+          - result.cherryservers_servers[0].ip_addresses | list | count == 0
+
+    - name: test server creation idempotency with check mode
+      local.cherryservers.server:
+        state: "present"
+        id: "{{ server.cherryservers_server.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ server_region }}"
+        plan: "{{ server_plan }}"
+      register: result
+      check_mode: true
+    - name: verify server creation idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test server creation idempotency
+      local.cherryservers.server:
+        state: "present"
+        id: "{{ server.cherryservers_server.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ server_region }}"
+        plan: "{{ server_plan }}"
+      register: result
+    - name: verify server creation idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+  always:
+    - name: delete servers
+      local.cherryservers.server:
+        id: "{{ server.cherryservers_server.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent

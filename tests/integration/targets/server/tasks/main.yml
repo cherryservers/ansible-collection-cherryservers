@@ -1,0 +1,4 @@
+---
+- ansible.builtin.include_tasks: test-basic-config.yml
+- ansible.builtin.include_tasks: test-full-config.yml
+- ansible.builtin.include_tasks: test-present-state.yml

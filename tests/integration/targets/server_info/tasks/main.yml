@@ -129,7 +129,7 @@
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_tags }}"
       register: result
-    - name: verify gather server by hostname
+    - name: verify gather server by tags
       ansible.builtin.assert:
         that:
           - result.cherryservers_servers | list | count == 2
