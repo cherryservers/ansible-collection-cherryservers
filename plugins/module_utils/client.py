@@ -72,7 +72,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
             method (str): The HTTP method to use.
             url (str): The URL to send the request to. Will be appended to the base URL.
             timeout (int): The timeout in seconds.
-            kwargs (dict): The keyword arguments to pass to the requests.
+            kwargs (Any): The keyword arguments to pass to the requests.
 
         Returns:
 
