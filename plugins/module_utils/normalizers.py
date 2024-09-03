@@ -10,6 +10,9 @@ Functions:
     normalize_ip(ip: dict): Normalize an IP resource.
 
 """
+from ansible.module_utils import basic as utils
+from ..module_utils import client
+from ..module_utils import constants
 
 
 def normalize_ip(ip: dict):
@@ -47,7 +50,37 @@ def normalize_ip(ip: dict):
     ip["a_record"] = ip.get("a_record", None)
 
 
-def normalize_server(server: dict) -> dict:
+def get_server_image_slug(  # the module will fail, if it doesn't return str, so pylint: disable=inconsistent-return-statements
+    server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
+) -> str:
+    """Get server image slug.
+
+    This is required because the server object retrieved from the API only
+    knows the full name of its image, but not the slug, even though the
+    slug is what's typically used for configuration.
+    """
+
+    plan = server.get("plan", {}).get("slug", None)
+    status, resp = api_client.send_request(
+        "GET", f"plans/{plan}/images", constants.SERVER_TIMEOUT
+    )
+
+    if status != 200:
+        module.fail_json(msg=f"failed to retrieve server plan images, status code: {status}")
+
+    if server["image"] == "unknown":
+        return "unknown"
+
+    for image in resp:
+        if image["name"] == server["image"]:
+            return image["slug"]
+
+    module.fail_json(msg=f"no server image slug found for image: {server['image']}")
+
+
+def normalize_server(
+    server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
+) -> dict:
     """Normalize Cherry Servers server resource."""
 
     ips = []
@@ -64,14 +97,15 @@ def normalize_server(server: dict) -> dict:
 
     ssh_keys = []
     for ssh_key in server.get("ssh_keys", []):
-        ssh_keys.append(
-            ssh_key["id"]
-        )
+        ssh_keys.append(ssh_key["id"])
+
+    image_slug = get_server_image_slug(server, api_client, module)
 
     return {
         "hostname": server.get("hostname", None),
         "id": server.get("id", None),
-        "image": server.get("image", None),
+        "image": image_slug,
+        "image_full": server.get("image", None),
         "ip_addresses": ips,
         "name": server.get("name", None),
         "plan": server.get("plan", {}).get("slug", None),

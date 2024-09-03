@@ -37,7 +37,7 @@ options:
         type: str
     image:
         description:
-            - Full server OS image name.
+            - Server OS image slug.
         type: str
     region:
         description:
@@ -116,10 +116,10 @@ cherryservers_servers:
       type: int
       sample: "123456"
     image:
-      description: Image of the server operating system.
+      description: Server OS image slug.
       returned: always
       type: str
-      sample: "Fedora 39 64bit"
+      sample: "fedora_39_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
@@ -229,7 +229,7 @@ def run_module():
     r = []
 
     for server in servers:
-        server = normalizers.normalize_server(server)
+        server = normalizers.normalize_server(server, api_client, module)
         if server_filter(module.params, server):
             r.append(server)
 

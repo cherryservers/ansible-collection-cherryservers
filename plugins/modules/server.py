@@ -208,10 +208,10 @@ cherryservers_server:
       type: int
       sample: "123456"
     image:
-      description: Image of the server operating system.
+      description: Server OS image slug.
       returned: always
       type: str
-      sample: "Fedora 39 64bit"
+      sample: "fedora_39_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
@@ -497,7 +497,7 @@ def get_server(
     if status not in (200, 404):
         module.fail_json(msg=f"Error getting server: {resp}")
     if status == 200:
-        return normalizers.normalize_server(resp)
+        return normalizers.normalize_server(resp, api_client, module)
     return None
 
 
@@ -535,7 +535,7 @@ def create_server(
     if status != 201:
         module.fail_json(msg=f"Failed to create server: {resp}")
 
-    return normalizers.normalize_server(resp)
+    return normalizers.normalize_server(resp, api_client, module)
 
 
 def wait_for_active(
