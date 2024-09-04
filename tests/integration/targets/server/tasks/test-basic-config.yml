@@ -164,6 +164,7 @@
     - name: test delete server no id
       local.cherryservers.server:
         auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
       register: result
       ignore_errors: true
     - name: verify server absent state no id
