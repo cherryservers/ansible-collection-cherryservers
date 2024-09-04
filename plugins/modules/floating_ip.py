@@ -18,11 +18,7 @@ version_added: "0.1.0"
 
 description:
     - Create, update and delete floating IPs on Cherry Servers.
-    - If you wish to update or delete existing floating IPs,
-    - you must provide O(id) or the combination of O(project_id) and O(address),
-    - as identifiers, along with state and other desired options.
-    - If you wish to create new floating IPs,
-    - you must provide O(project_id) and O(region_slug) along other desired options.
+    - If you want to manage an existing floating IP, set O(id) along with state and other desired options.
 
 options:
     state:
@@ -35,29 +31,19 @@ options:
         description:
             - ID of the floating IP.
             - Used to identify existing floating IPs.
-            - Required if floating IP exists and O(address) is not provided.
-            - Mutually exclusive with O(address).
-        type: str
-    address:
-        description:
-            - Address of the floating IP.
-            - Used to identify existing floating IPs.
-            - Required if floating IP exists and O(id) is not provided.
-            - Mutually exclusive with O(id).
+            - Required if floating IP exists.
         type: str
     project_id:
         description:
-            - The ID of the project the floating IP belongs to.
-            - Required if O(state=present) and floating IP doesn't exist.
-            - Required by O(address).
-            - Cannot be updated after creation.
-        type: str
-    region_slug:
+            - ID of the project the floating IP belongs to.
+            - Required if floating IP doesn't exist.
+            - Cannot be set for an existing floating IP.
+        type: int
+    region:
         description:
-            - The region slug of the floating IP.
-            - Required if O(state=present) and floating IP doesn't exist.
-            - Cannot be updated after creation.
-        aliases: [region]
+            - Slug of the floating IP region.
+            - Required if floating IP doesn't exist.
+            - Cannot be set for an existing floating IP.
         type: str
     route_ip_id:
         description:
@@ -66,7 +52,7 @@ options:
         type: str
     target_server_id:
         description:
-            - The ID of the server to which the floating IP is attached.
+            - ID of the server to which the floating IP is attached.
             - Set V(0) to unattach.
             - Mutually exclusive with O(route_ip_id).
         type: int
@@ -82,7 +68,7 @@ options:
     ddos_scrubbing:
         description:
             - If true, DDOS scrubbing protection will be applied in real-time.
-            - Cannot be updated after creation.
+            - Cannot be set for an existing floating IP.
         default: false
         type: bool
     tags:
@@ -100,8 +86,8 @@ author:
 EXAMPLES = r"""
 - name: Create a floating IP
   local.cherryservers.floating_ip:
-    project_id: "213668"
-    region_slug: "eu_nord_1"
+    project_id: 213668
+    region: "eu_nord_1"
     target_server_id: "590738"
     ptr_record: "moduletestptr"
     a_record: "moduletesta"
@@ -109,7 +95,7 @@ EXAMPLES = r"""
       env: "test"
   register: result
 
-- name: Update a floating IP by using its ID
+- name: Update a floating IP
   local.cherryservers.floating_ip:
     id: "a0ff92c9-21f6-c387-33d0-5c941c0435f0"
     target_server_id: 590738
@@ -117,15 +103,6 @@ EXAMPLES = r"""
     a_record: "anstest"
     tags:
       env: "test"
-  register: result
-
-- name: Update a floating IP by using its address and project ID.
-  local.cherryservers.floating_ip:
-    address: "5.199.174.84"
-    project_id: 213668
-    target_server_id: 0
-    ptr_record: ""
-    a_record: ""
   register: result
 
 - name: Delete floating IP
@@ -165,7 +142,7 @@ cherryservers_floating_ip:
       returned: if exists
       type: str
       sample: "test."
-    region_slug:
+    region:
       description: Slug of the region which the IP belongs to.
       returned: always
       type: str
@@ -181,6 +158,11 @@ cherryservers_floating_ip:
       returned: if exists
       type: int
       sample: "123456"
+    project_id:
+      description: Cherry Servers project ID, associated with the floating IP.
+      returned: always
+      type: int
+      sample: 123456
     route_ip_id:
       description: ID of the IP to which the floating IP is routed to.
       returned: if exists
@@ -203,74 +185,27 @@ def run_module():
     module = utils.AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True,
-        mutually_exclusive=[["route_ip_id", "target_server_id"], ["id", "address"]],
-        required_one_of=[("project_id", "id")],
-        required_by={"address": "project_id"},
+        mutually_exclusive=[["route_ip_id", "target_server_id"]],
     )
 
     api_client = client.CherryServersClient(module)
 
-    fip = get_fip(api_client, module)
-    normalizers.normalize_ip(fip)
-
-    if module.params["state"] == "present":
-        if fip:
-            update_fip(api_client, module, fip)
+    # If ID is not provided, we assume that creation is the intended operation.
+    if module.params["id"]:
+        if module.params["state"] == "absent":
+            absent_state(api_client, module)
         else:
-            create_fip(api_client, module)
-    elif module.params["state"] == "absent":
-        if fip:
-            delete_fip(api_client, module, fip)
-        else:
-            module.exit_json(changed=False)
+            update_state(api_client, module)
+    else:
+        creation_state(api_client, module)
 
 
-def get_fip(api_client: client, module: utils.AnsibleModule) -> Optional[dict]:
-    """Returns a floating IP resource that matches the module specification.
-
-    If multiple matching floating IPs are found, fails the module.
-
-    Returns:
-        Optional[dict]: Floating IP resource or None if no matching resource is found.
-    """
-    if module.params["id"] is not None:
-        url = f"ips/{module.params['id']}"
-        status, resp = api_client.send_request(
-            "GET",
-            url,
-            constants.IP_TIMEOUT,
-        )
-        if status not in (200, 404):
-            module.fail_json(msg=f"Unknown error retrieving floating IP: {resp}")
-        if status == 200:
-            return resp
-        return None
-
-    url = f"projects/{module.params['project_id']}/ips"
-    ips = common.find_resources(
-        api_client,
-        module,
-        ("id", "address"),
-        url,
-        constants.IP_TIMEOUT,
-    )
-
-    if len(ips) > 1:
-        module.fail_json(msg=f"More than one matching floating IP found: {ips}")
-    if len(ips) == 0:
-        return None
-
-    return ips[0]
-
-
-def create_fip(api_client: client, module: utils.AnsibleModule):
-    """Create a new floating IP address."""
+def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Execute creation state logic."""
     params = module.params
 
-    if params["project_id"] is None or params["region_slug"] is None:
-        module.fail_json(
-            "project_id and region_slug are required for creating SSH keys."
-        )
+    if params["project_id"] is None or params["region"] is None:
+        module.fail_json("project_id and region are required for creating SSH keys.")
 
     if module.check_mode:
         module.exit_json(changed=True)
@@ -279,7 +214,7 @@ def create_fip(api_client: client, module: utils.AnsibleModule):
         "POST",
         f"projects/{params['project_id']}/ips",
         constants.IP_TIMEOUT,
-        region=params["region_slug"],
+        region=params["region"],
         routed_to=params["route_ip_id"],
         targeted_to=params["target_server_id"],
         ptr_record=params["ptr_record"],
@@ -294,38 +229,43 @@ def create_fip(api_client: client, module: utils.AnsibleModule):
     # We need to do another GET request, because the object returned from POST
     # doesn't contain all the necessary data.
 
-    status, resp = api_client.send_request(
-        "GET", f"ips/{resp['id']}", constants.IP_TIMEOUT
-    )
-
-    if status != 200:
-        module.fail_json(
-            msg=f"Failed to retrieve floating IP after creating it: {resp}"
-        )
-
-    normalizers.normalize_ip(resp)
-    module.exit_json(changed=True, cherryservers_floating_ip=resp)
+    fip = get_fip(api_client, module, resp["id"])
+    module.exit_json(changed=True, cherryservers_floating_ip=fip)
 
 
-def delete_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
-    """Delete a single floating IP."""
-    if module.check_mode:
+def absent_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Execute deletion state logic."""
+    fip = get_fip(api_client, module, module.params["id"])
+    if fip:
+        if module.check_mode:
+            module.exit_json(changed=True)
+        delete_fip(api_client, module, fip)
         module.exit_json(changed=True)
+    else:
+        module.exit_json(changed=False)
 
-    if fip["targeted_to"] != 0:
-        untarget_fip(api_client, module, fip["id"])
 
+def get_fip(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip_id: str
+) -> Optional[dict]:
+    """Retrieve a normalized Cherry Servers floating IP resource."""
+    url = f"ips/{fip_id}"
     status, resp = api_client.send_request(
-        "DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT
+        "GET",
+        url,
+        constants.IP_TIMEOUT,
     )
-    if status != 204:
-        module.fail_json(msg=f"Failed to delete floating IP: {resp}")
+    #  Code 403 can also be returned for a deleted resource, if enough time hasn't passed.
+    if status not in (200, 403, 404):
+        module.fail_json(msg=f"Error getting floating IP: {resp}")
+    if status == 200:
+        return normalizers.normalize_fip(resp)
+    return None
 
-    module.exit_json(changed=True)
 
-
-def update_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
-    """Update a floating IP resource."""
+def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
+    """Execute update state logic."""
+    fip = get_fip(api_client, module, module.params["id"])
     req, changed = get_update_request(module.params, fip)
 
     if module.check_mode:
@@ -342,8 +282,25 @@ def update_fip(api_client: client, module: utils.AnsibleModule, fip: dict):
     )
     if status != 200:
         module.fail_json(msg=f"Failed to update floating IP address: {resp}")
-    normalizers.normalize_ip(resp)
-    module.exit_json(changed=True, cherryservers_floating_ip=resp)
+
+    fip = get_fip(api_client, module, fip["id"])
+    module.exit_json(changed=True, cherryservers_floating_ip=fip)
+
+
+def delete_fip(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip: dict
+):
+    """Delete a single floating IP."""
+    if fip["target_server_id"]:
+        untarget_fip(api_client, module, fip["id"])
+
+    status, resp = api_client.send_request(
+        "DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT
+    )
+    if status != 204:
+        module.fail_json(msg=f"Failed to delete floating IP: {resp}")
+
+    module.exit_json(changed=True)
 
 
 def get_update_request(params: dict, fip: dict) -> Tuple[dict, bool]:
@@ -351,12 +308,25 @@ def get_update_request(params: dict, fip: dict) -> Tuple[dict, bool]:
     req = {}
     changed = False
 
-    # prepare ptr_record and a_record for comparison
+    ptr_org, a_org, target_server_id_org = (
+        fip["ptr_record"],
+        fip["a_record"],
+        fip["target_server_id"],
+    )
+
+    # prepare for comparison
     if fip["ptr_record"] is not None and fip["ptr_record"][-1] == ".":
         fip["ptr_record"] = fip["ptr_record"][:-1]
+    else:
+        fip["ptr_record"] = ""
 
     if fip["a_record"] is not None:
         fip["a_record"] = fip["a_record"].split(".cloud.cherryservers.net")[0]
+    else:
+        fip["a_record"] = ""
+
+    if fip["target_server_id"] is None:
+        fip["target_server_id"] = 0
 
     for k in ("ptr_record", "a_record", "tags"):
         if params[k] is not None and params[k] != fip[k]:
@@ -377,10 +347,16 @@ def get_update_request(params: dict, fip: dict) -> Tuple[dict, bool]:
         req["targeted_to"] = params["target_server_id"]
         changed = True
 
+    fip["ptr_record"] = ptr_org
+    fip["a_record"] = a_org
+    fip["target_server_id"] = target_server_id_org
+
     return req, changed
 
 
-def untarget_fip(api_client: client, module: utils.AnsibleModule, fip_id: str):
+def untarget_fip(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip_id: str
+):
     """Set floating IP target server ID to 0."""
     status, resp = api_client.send_request(
         "PUT",
@@ -404,9 +380,8 @@ def get_module_args() -> dict:
                 "type": "str",
             },
             "id": {"type": "str"},
-            "address": {"type": "str"},
-            "project_id": {"type": "str"},
-            "region_slug": {"type": "str", "aliases": ["region"]},
+            "project_id": {"type": "int"},
+            "region": {"type": "str"},
             "route_ip_id": {"type": "str"},
             "target_server_id": {"type": "int"},
             "ptr_record": {"type": "str"},

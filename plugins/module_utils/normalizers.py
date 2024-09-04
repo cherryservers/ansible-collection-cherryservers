@@ -15,39 +15,21 @@ from ..module_utils import client
 from ..module_utils import constants
 
 
-def normalize_ip(ip: dict):
-    """Normalize Cherry Servers IP resource.
-
-    Modifies field keys to match module parameter keys,
-    ensures that all keys have a value, even if it's None.
-    Also, removes unnecessary keys.
-
-    Args:
-
-        ip (dict): Cherry Servers IP resource. This dictionary will be modified.
-    """
-    to_trim = (
-        "address_family",
-        "href",
-        "project",
-        "gateway",
-        "type",
-        "routed_to",
-        "targeted_to",
-        "region",
-    )
-    target_id = ip.get("targeted_to", {}).get("id", None)
-    route_id = ip.get("routed_to", {}).get("id", None)
-    region_slug = ip.get("region", {}).get("slug")
-    for t in to_trim:
-        ip.pop(t, None)
-
-    ip["target_server_id"] = target_id
-    ip["route_ip_id"] = route_id
-    ip["region_slug"] = region_slug
-
-    ip["ptr_record"] = ip.get("ptr_record", None)
-    ip["a_record"] = ip.get("a_record", None)
+def normalize_fip(fip: dict) -> dict:
+    """Normalize Cherry Servers floating IP resource."""
+    return {
+        "a_record": fip.get("a_record", None),
+        "address": fip.get("address", None),
+        "cidr": fip.get("cidr", None),
+        "id": fip.get("id", None),
+        "ptr_record": fip.get("ptr_record", None),
+        "region": fip.get("region", {}).get("slug", None),
+        "tags": fip.get("tags", None),
+        "target_server_id": fip.get("targeted_to", {}).get("id", None),
+        "route_ip_id": fip.get("routed_to", {}).get("id", None),
+        "project_id": fip.get("project", {}).get("id", None),
+        "type": fip.get("type", None),
+    }
 
 
 def get_server_image_slug(  # the module will fail, if it doesn't return str, so pylint: disable=inconsistent-return-statements
@@ -66,7 +48,9 @@ def get_server_image_slug(  # the module will fail, if it doesn't return str, so
     )
 
     if status != 200:
-        module.fail_json(msg=f"failed to retrieve server plan images, status code: {status}")
+        module.fail_json(
+            msg=f"failed to retrieve server plan images, status code: {status}"
+        )
 
     if server["image"] == "unknown":
         return "unknown"

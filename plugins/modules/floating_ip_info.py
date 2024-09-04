@@ -24,36 +24,30 @@ description:
 options:
     id:
         description:
-            - The ID of the floating IP.
+            - ID of the floating IP.
             - Required if O(project_id) is not provided.
         type: str
     address:
         description:
-            - The IP address of the floating IP.
+            - IP address of the floating IP.
         type: str
     project_id:
         description:
-            - The ID of the project the floating IP belongs to.
+            - ID of the project the floating IP belongs to.
             - Required if O(id) is not provided.
-        type: str
+        type: int
     tags:
         description:
             - Tags of the floating IP.
         type: dict
-    region_slug:
+    region:
         description:
-            - The region slug of the floating IP.
-        aliases: [region]
+            - Slug of the floating IP region.
         type: str
     target_server_id:
         description:
-            - The ID of the server to which the floating IP is attached.
+            - ID of the server to which the floating IP is attached.
         type: int
-    available_only:
-        description:
-            - Whether to search for available floating IPs only.
-        type: bool
-        default: false
 
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
@@ -72,13 +66,13 @@ EXAMPLES = r"""
 - name: Get all project floating IPs
   local.cherryservers.floating_ip_info:
     auth_token: "{{ auth_token }}"
-    project_id: "123456"
+    project_id: 123456
   register: result
 
 - name: 'Get all floating IPs in the EU Nord-1 region, that have the env: dev tag'
   local.cherryservers.floating_ip_info:
     auth_token: "{{ auth_token }}"
-    region_slug: "eu_nord_1"
+    region: "eu_nord_1"
     project_id: "123456"
     tags:
       env: "dev"
@@ -117,7 +111,7 @@ cherryservers_floating_ips:
       returned: if exists
       type: str
       sample: "test."
-    region_slug:
+    region:
       description: Slug of the region which the IP belongs to.
       returned: always
       type: str
@@ -133,6 +127,16 @@ cherryservers_floating_ips:
       returned: if exists
       type: int
       sample: "123456"
+    route_ip_id:
+      description: ID of the IP to which the floating IP is routed to.
+      returned: if exists
+      type: str
+      sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
+    project_id:
+      description: Cherry Servers project ID, associated with the floating IP.
+      returned: always
+      type: int
+      sample: 123456
 """
 
 from typing import List
@@ -156,21 +160,23 @@ def run_module():
     api_client = client.CherryServersClient(module)
 
     if module.params["id"] is not None:
-        fips = get_single_ip(api_client, module)
+        fips = get_single_fip(api_client, module)
     else:
-        fips = get_multiple_ips(api_client, module)
+        fips = get_multiple_fips(api_client, module)
 
     r = []
 
     for fip in fips:
+        fip = normalizers.normalize_fip(fip)
         if fip_filter(module.params, fip):
-            normalizers.normalize_ip(fip)
             r.append(fip)
 
     module.exit_json(changed=False, cherryservers_floating_ips=r)
 
 
-def get_single_ip(api_client: client, module: utils.AnsibleModule) -> List[dict]:
+def get_single_fip(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule
+) -> List[dict]:
     """Get a single floating IP from the Cherry Servers client.
 
     This IP is returned as a single dictionary entry in a list, for easier
@@ -182,33 +188,31 @@ def get_single_ip(api_client: client, module: utils.AnsibleModule) -> List[dict]
 
     ip = []
 
+    if status not in (200, 403, 404):
+        module.fail_json(msg=f"Error getting floating IP: {resp}")
     if status == 200:
         ip.append(resp)
-    elif status != 404:
-        module.fail_json(msg=f"Unexpected client error: {resp}")
 
     return ip
 
 
-def get_multiple_ips(api_client: client, module: utils.AnsibleModule) -> List[dict]:
+def get_multiple_fips(
+    api_client: client.CherryServersClient, module: utils.AnsibleModule
+) -> List[dict]:
     """Get multiple floating IPs from the Cherry Servers client."""
     params = module.params
 
-    if params["available_only"]:
-        status, resp = api_client.send_request(
-            "GET",
-            f"projects/{params['project_id']}/available_ips",
-            constants.IP_TIMEOUT,
-        )
-    else:
-        status, resp = api_client.send_request(
-            "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
-        )
+    status, resp = api_client.send_request(
+        "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
+    )
 
-    if status not in (200, 404):
-        module.fail_json(msg=f"Unexpected client error: {resp}")
+    if status not in (200, 403, 404):
+        module.fail_json(msg=f"Error getting floating IPs: {resp}")
 
-    return resp
+    if status == 200:
+        return resp
+
+    return []
 
 
 def get_module_args() -> dict:
@@ -220,12 +224,11 @@ def get_module_args() -> dict:
             "tags": {
                 "type": "dict",
             },
-            "region_slug": {"type": "str", "aliases": ["region"]},
+            "region": {"type": "str"},
             "id": {"type": "str"},
             "address": {"type": "str"},
-            "project_id": {"type": "str"},
+            "project_id": {"type": "int"},
             "target_server_id": {"type": "int"},
-            "available_only": {"type": "bool", "default": "false"},
         }
     )
 
@@ -234,25 +237,17 @@ def get_module_args() -> dict:
 
 def fip_filter(module_params: dict, fip: dict) -> bool:
     """Check if the floating IP address should be included in the response."""
-    region_slug = fip["region"]["slug"]
-    target_server_id = fip.get("targeted_to", {}).get("id", None)
-
     if fip["type"] != "floating-ip":
         return False
 
-    if (
-        all(
-            module_params[k] is None or module_params[k] == fip[k]
-            for k in ["id", "address"]
-        )
-        and module_params["region_slug"] in (None, region_slug)
-        and module_params["target_server_id"] in (None, target_server_id)
-        and (
-            module_params["tags"] is None
-            or all(
-                module_params["tags"][k] == fip["tags"].get(k)
-                for k in module_params["tags"]
-            )
+    if all(
+        module_params[k] is None or module_params[k] == fip[k]
+        for k in ["id", "address", "project_id", "region", "target_server_id"]
+    ) and (
+        module_params["tags"] is None
+        or all(
+            module_params["tags"][k] == fip["tags"].get(k)
+            for k in module_params["tags"]
         )
     ):
         return True
