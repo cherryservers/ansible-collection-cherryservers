@@ -1,0 +1,196 @@
+---
+- name: Run tests
+  block:
+    - name: create server
+      local.cherryservers.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        region: "{{ fip_region }}"
+        project_id: "{{ cherryservers_project_id }}"
+        plan: "{{ server_plan }}"
+      register: server
+    - name: verify create server
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: create fip
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        region: "{{ fip_region }}"
+        project_id: "{{ cherryservers_project_id }}"
+        target_server_id: "{{ server.cherryservers_server.id }}"
+        tags: "{{ fip_tags }}"
+      register: fip
+    - name: verify create fip
+      ansible.builtin.assert:
+        that:
+          - fip is changed
+
+    - name: test gather by project_id
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+      register: result
+    - name: verify gather by project_id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count >= 1
+          - result is not changed
+
+    - name: test gather by project_id with check mode
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+      check_mode: true
+      register: result
+    - name: verify gather by project_id with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count >= 1
+          - result is not changed
+
+    - name: test gather floating ip by id
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify gather floating ip by id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by id with check mode
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      check_mode: true
+      register: result
+    - name: verify gather floating ip by id with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by id wrong
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "ef607e8a-d9d4-d4ba-7379-55dbd841e06c"
+      register: result
+    - name: verify gather floating ip by id wrong
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 0
+          - result is not changed
+
+    - name: test gather floating ip by address
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        address: "{{ fip.cherryservers_floating_ip.address }}"
+      register: result
+    - name: verify gather floating ip by address
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by address with check mode
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        address: "{{ fip.cherryservers_floating_ip.address }}"
+      register: result
+      check_mode: true
+    - name: verify gather floating ip by address with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by server id
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        target_server_id: "{{ fip.cherryservers_floating_ip.target_server_id }}"
+      register: result
+    - name: verify gather floating ip by server id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by tags
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        tags: "{{ fip_tags }}"
+      register: result
+    - name: verify gather floating ip by tags
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by tags with check mode
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        tags: "{{ fip_tags }}"
+      check_mode: true
+      register: result
+    - name: gather floating ip by tags with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+
+    - name: test gather floating ip by tags wrong
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        tags:
+          env: "none"
+      register: result
+    - name: verify gather floating ip by tags wrong
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 0
+          - result is not changed
+
+    - name: test gather with all options
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        address: "{{ fip.cherryservers_floating_ip.address }}"
+        tags: "{{ fip.cherryservers_floating_ip.tags }}"
+        region: "{{ fip.cherryservers_floating_ip.region }}"
+        target_server_id: "{{ fip.cherryservers_floating_ip.target_server_id }}"
+      register: result
+    - name: verify gather with all options
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result is not changed
+  always:
+    - name: delete server
+      local.cherryservers.server:
+        id: "{{ server.cherryservers_server.id }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify delete first server
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: delete fip
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify delete fip
+      ansible.builtin.assert:
+        that:
+          - result is changed

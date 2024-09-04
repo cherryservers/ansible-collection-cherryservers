@@ -1,0 +1,5 @@
+fip_region: "eu_nord_1"
+fip_tags:
+  env: "ansible-fip-info-test"
+
+server_plan: "cloud_vps_1"

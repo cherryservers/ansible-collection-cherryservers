@@ -1,0 +1,12 @@
+fip_region: "eu_nord_1"
+server_plan: "cloud_vps_1"
+
+fip_tags_basic:
+  env: "ansupdtestbasic"
+fip_a_record_basic: "ansupdtestbasic"
+fip_ptr_record_basic:  "ansupdtestbasic"
+
+fip_tags_full:
+  env: "ansupdtestfull"
+fip_a_record_full: "ansupdtestfull"
+fip_ptr_record_full:  "ansupdtestfull"

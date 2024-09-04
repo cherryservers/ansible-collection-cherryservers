@@ -1,0 +1,306 @@
+---
+- name: Run tests
+  block:
+    - name: create server
+      local.cherryservers.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        region: "{{ fip_region }}"
+        project_id: "{{ cherryservers_project_id }}"
+        plan: "{{ server_plan }}"
+      register: server
+    - name: verify create server
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: test create floating ip missing parameter
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+      register: fip
+      ignore_errors: true
+    - name: verify create floating ip missing parameter
+      ansible.builtin.assert:
+        that:
+          - fip is failed
+
+    - name: test create floating ip with check mode
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "{{ server.cherryservers_server.id }}"
+        tags: "{{ fip_tags_full }}"
+        ptr_record: "{{ fip_ptr_record_full }}"
+        a_record: "{{ fip_a_record_full }}"
+      register: fip
+      check_mode: true
+    - name: verify create floating_ip with check mode
+      ansible.builtin.assert:
+        that:
+          - fip is changed
+
+    - name: test no floating ip actually created
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        tags: "{{ fip_tags_full }}"
+      register: result
+    - name: verify no floating ip actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 0
+          - result is not changed
+
+    - name: test create floating ip
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "{{ server.cherryservers_server.id }}"
+        tags: "{{ fip_tags_full }}"
+        ptr_record: "{{ fip_ptr_record_full }}"
+        a_record: "{{ fip_a_record_full }}"
+      register: fip
+    - name: verify create floating ip
+      ansible.builtin.assert:
+        that:
+          - fip is changed
+
+    - name: test floating ip actually created
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify floating ip actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result.cherryservers_floating_ips[0].project_id == cherryservers_project_id
+          - result.cherryservers_floating_ips[0].region == fip_region
+          - result.cherryservers_floating_ips[0].target_server_id == server.cherryservers_server.id
+          - result.cherryservers_floating_ips[0].tags == fip_tags_full
+          - result.cherryservers_floating_ips[0].a_record == fip_a_record_full + '.cloud.cherryservers.net.'
+          - result.cherryservers_floating_ips[0].ptr_record == fip_ptr_record_full + '.'
+
+    - name: test floating ip creation idempotency with check mode
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "{{ server.cherryservers_server.id }}"
+        tags: "{{ fip_tags_full }}"
+        ptr_record: "{{ fip_ptr_record_full }}"
+        a_record: "{{ fip_a_record_full }}"
+      register: result
+      check_mode: true
+    - name: verify floating ip creation idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test floating ip creation idempotency
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "{{ server.cherryservers_server.id }}"
+        tags: "{{ fip_tags_full }}"
+        ptr_record: "{{ fip_ptr_record_full }}"
+        a_record: "{{ fip_a_record_full }}"
+      register: result
+    - name: verify floating ip creation idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test update floating ip with check mode
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "0"
+        tags: "{}"
+        ptr_record: ""
+        a_record: ""
+      check_mode: true
+      register: result
+    - name: verify update floating ip with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test no floating ip update actually happened
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        tags: "{}"
+        target_server_id: "0"
+      register: result
+    - name: verify no floating ip update actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 0
+          - result is not changed
+
+    - name: test update floating ip
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "0"
+        tags: "{}"
+        ptr_record: ""
+        a_record: ""
+      register: result
+    - name: verify update floating ip
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test update floating ip actually happened
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify update floating ip actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+          - result.cherryservers_floating_ips[0].route_ip_id is none
+          - result.cherryservers_floating_ips[0].target_server_id is none
+          - result.cherryservers_floating_ips[0].a_record is none
+          - result.cherryservers_floating_ips[0].ptr_record is none
+          - result.cherryservers_floating_ips[0].tags == {}
+
+    - name: test floating ip update idempotency with check mode
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "0"
+        tags: "{}"
+        ptr_record: ""
+        a_record: ""
+      register: result
+      check_mode: true
+    - name: verify floating ip update idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test server update idempotency
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ fip_region }}"
+        target_server_id: "0"
+        tags: "{}"
+        ptr_record: ""
+        a_record: ""
+      register: result
+    - name: verify floating ip update idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test delete floating ip no id
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+      register: result
+      ignore_errors: true
+    - name: verify delete floating ip no id
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: test delete floating ip with check mode
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+      check_mode: true
+    - name: verify delete floating ip with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test no floating ip actually deleted
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify no floating ip actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 1
+
+    - name: test delete floating ip
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify delete floating ip
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: Wait for backend to delete floating ip
+      ansible.builtin.pause:
+        seconds: 10
+    - name: test floating ip actually deleted
+      local.cherryservers.floating_ip_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify floating ip actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_floating_ips | list | count == 0
+          - result is not changed
+
+    - name: test floating ip delete idempotency with check mode
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+      check_mode: true
+    - name: verify floating ip delete idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test floating ip delete idempotency
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+      register: result
+    - name: verify floating ip delete idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+  always:
+    - name: delete server
+      local.cherryservers.server:
+        id: "{{ server.cherryservers_server.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+    - name: delete floating ip
+      local.cherryservers.floating_ip:
+        id: "{{ fip.cherryservers_floating_ip.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
