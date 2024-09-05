@@ -1,0 +1,37 @@
+name: integration-tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: Integration (${{ matrix.versions.ansible }})
+    strategy:
+      fail-fast: false
+      matrix:
+        versions:
+          - ansible: stable-2.14
+            python: "3.9"
+    steps:
+      - name: Perform testing
+        uses: ansible-community/ansible-test-gh-action@release/v1
+        with:
+          pre-test-cmd: >-
+            CHERRY_AUTH_TOKEN=${{ secrets.CHERRY_AUTH_TOKEN }}
+            CHERRY_PROJECT_ID=${{ secrets.CHERRY_PROJECT_ID }}
+            ./tests/utils/render.sh
+            tests/integration/integration_config.yml.template
+            > tests/integration/integration_config.yml
+          ansible-core-version: ${{ matrix.versions.ansible }}
+          origin-python-version: ${{ matrix.versions.python }}
+          target: ${{ matrix.module }}
+          target-python-version: ${{ matrix.versions.python }}
+          testing-type: integration
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+

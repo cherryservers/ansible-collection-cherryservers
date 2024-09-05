@@ -1,0 +1,3 @@
+---
+cherryservers_api_key: ${CHERRY_AUTH_TOKEN}
+cherryservers_project_id: ${CHERRY_PROJECT_ID}
