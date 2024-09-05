@@ -1,27 +1,25 @@
-name: ci
+name: sanity-tests
 
 on:
-  push:
-    branches: [main]
+  [push, pull_request]
 
 jobs:
   sanity:
     timeout-minutes: 30
-    name: Sanity (Ⓐ$${{ matrix.versions.ansible }})
+    name: Sanity (${{ matrix.versions.ansible }})
     strategy:
       fail-fast: false
       matrix:
         versions:
+          - ansible: stable-2.14
+          - ansible: stable-2.15
           - ansible: stable-2.16
-            python: "3.10"
           - ansible: stable-2.17
-            python: "3.10"
-    runs-on: ubuntu-22.04
+          - ansible: devel
+    runs-on: ubuntu-latest
     steps:
       - name: Do sanity tests
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
           ansible-core-version: ${{ matrix.versions.ansible }}
-          origin-python-version: ${{ matrix.versions.python }}
-          target-python-version: ${{ matrix.versions.python }}
           testing-type: sanity
