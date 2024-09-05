@@ -19,8 +19,8 @@ import string
 from collections.abc import Sequence
 from typing import List
 
-from . import client
 from ansible.module_utils import basic as utils
+from . import client
 
 
 def get_base_argument_spec() -> dict:
@@ -44,11 +44,8 @@ def generate_password(length: int) -> str:
         4. Have at least one digit, that is not the last character.
         5. Not have any of ' " ` ! $ % & ; % #
     """
-    if length < 8:
-        length = 8
-
-    if length > 24:
-        length = 24
+    length = max(8, length)
+    length = min(24, length)
 
     lowercase = random.choice(string.ascii_lowercase)
     uppercase = random.choice(string.ascii_uppercase)
