@@ -186,16 +186,17 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True,
         mutually_exclusive=[["route_ip_id", "target_server_id"]],
+        required_if=[
+            ("state", "absent", ["id"], True),
+        ],
     )
 
     api_client = client.CherryServersClient(module)
 
-    # If ID is not provided, we assume that creation is the intended operation.
-    if module.params["id"]:
-        if module.params["state"] == "absent":
-            absent_state(api_client, module)
-        else:
-            update_state(api_client, module)
+    if module.params["state"] == "absent":
+        absent_state(api_client, module)
+    elif module.params["id"]:
+        update_state(api_client, module)
     else:
         creation_state(api_client, module)
 
