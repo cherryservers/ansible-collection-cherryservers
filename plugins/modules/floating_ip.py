@@ -206,7 +206,7 @@ def creation_state(api_client: client.CherryServersClient, module: utils.Ansible
     params = module.params
 
     if params["project_id"] is None or params["region"] is None:
-        module.fail_json("project_id and region are required for creating SSH keys.")
+        module.fail_json("project_id and region are required for creating floating ips")
 
     if module.check_mode:
         module.exit_json(changed=True)
