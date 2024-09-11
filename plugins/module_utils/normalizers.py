@@ -32,6 +32,32 @@ def normalize_fip(fip: dict) -> dict:
     }
 
 
+def normalize_storage(storage: dict) -> dict:
+    """Normalize Cherry Servers storage resource."""
+    description = storage.get("description", None)
+    if description == "":
+        description = None
+
+    target_server_id = storage.get("attached_to", {}).get("id", None)
+    state = "detached"
+    if target_server_id is not None:
+        state = "attached"
+
+    return {
+        "id": storage.get("id", None),
+        "region": storage.get("region", {}).get("slug", None),
+        "size": storage.get("size", None),
+        "description": description,
+        "target_server_id": target_server_id,
+        "vlan_id": storage.get("vlan_id", None),
+        "vlan_ip": storage.get("vlan_ip", None),
+        "initiator": storage.get("initiator", None),
+        "portal_ip": storage.get("discovery_ip", None),
+        "name": storage.get("name", None),
+        "state": state,
+    }
+
+
 def get_server_image_slug(  # the module will fail, if it doesn't return str, so pylint: disable=inconsistent-return-statements
     server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
 ) -> str:
