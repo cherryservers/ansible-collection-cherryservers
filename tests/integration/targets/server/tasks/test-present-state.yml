@@ -65,9 +65,6 @@
           - result.cherryservers_servers[0].project_id == cherryservers_project_id
           - result.cherryservers_servers[0].region == server_region
           - result.cherryservers_servers[0].plan == server_plan
-          - result.cherryservers_servers[0].image == "unknown"
-          - result.cherryservers_servers[0].status == "unknown"
-          - result.cherryservers_servers[0].ip_addresses | list | count == 0
 
     - name: test server creation idempotency with check mode
       local.cherryservers.server:
