@@ -367,10 +367,7 @@ class ServerModule(base_module.BaseModule):
         if self._module.params["state"] == "active":
             self._wait_for_active()
 
-        # We do another read, in case not all fields were properly returned on creation.
-        self.resource = self._read_by_id(self.resource["id"])
-
-        self._module.exit_json(changed=True, **{self.name: self.resource})
+        self._exit_with_return()
 
     def _wait_for_active(self):
         """Wait for server to become active."""
@@ -410,11 +407,9 @@ class ServerModule(base_module.BaseModule):
                 self._module.fail_json(
                     msg=f"error {status}, failed to update {self.name}: {resp}"
                 )
+            self.resource = resp
 
-        # We do another read, in case not all fields were properly returned after update.
-
-        self.resource = self._read_by_id(self.resource["id"])
-        self._module.exit_json(changed=True, **{self.name: self.resource})
+        self._exit_with_return()
 
     def _get_basic_server_update_request(self) -> Tuple[dict, bool]:
         """Get Cherry Servers server update API request.

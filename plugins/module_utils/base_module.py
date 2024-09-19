@@ -17,13 +17,13 @@ class BaseModule(ABC):
     ):
         self._module = module
         self._api_client = api_client
-        self.resource = self._read_by_id(self._module.params["id"])
+        self._load_resource()
 
     def run(self):
         """TODO"""
         if self._module.params["state"] == "absent":
             self._delete()
-        elif self._module.params["id"]:
+        elif self.resource:
             self._update()
         else:
             self._create()
@@ -32,6 +32,10 @@ class BaseModule(ABC):
     @abstractmethod
     def name(self) -> str:
         """TODO"""
+
+    def _load_resource(self):
+        """TODO"""
+        self.resource = self._read_by_id(self._module.params.get("id"))
 
     @property
     def resource(self) -> Optional[dict]:
@@ -84,3 +88,9 @@ class BaseModule(ABC):
     @abstractmethod
     def _read_by_id(self, resource_id: Any) -> Optional[dict]:
         """TODO"""
+
+    def _exit_with_return(self):
+        """TODO"""
+        # We do another read, in case not all fields were properly returned.
+        self.resource = self._read_by_id(self.resource["id"])
+        self._module.exit_json(changed=True, **{self.name: self.resource})

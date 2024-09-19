@@ -15,6 +15,18 @@ from ..module_utils import client
 from ..module_utils import constants
 
 
+def normalize_ssh_key(key: dict) -> dict:
+    """TODO"""
+    return {
+        "id": key.get("id", None),
+        "label": key.get("label", None),
+        "key": key.get("key", None),
+        "fingerprint": key.get("fingerprint", None),
+        "updated": key.get("updated", None),
+        "created": key.get("created", None),
+    }
+
+
 def normalize_fip(fip: dict) -> dict:
     """Normalize Cherry Servers floating IP resource."""
     return {

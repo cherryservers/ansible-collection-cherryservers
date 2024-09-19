@@ -170,203 +170,169 @@ cherryservers_floating_ip:
       sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
-from ..module_utils import normalizers
+from ..module_utils import client, common, normalizers, base_module
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class FloatingIPModule(base_module.BaseModule):
+    """TODO"""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        mutually_exclusive=[["route_ip_id", "target_server_id"]],
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
+    timeout = 30
 
-    api_client = client.CherryServersClient(module)
+    @property
+    def name(self) -> str:
+        """TODO"""
+        return "cherryservers_floating_ip"
 
-    if module.params["state"] == "absent":
-        absent_state(api_client, module)
-    elif module.params["id"]:
-        update_state(api_client, module)
-    else:
-        creation_state(api_client, module)
+    def _normalize(self, resource: dict) -> dict:
+        return normalizers.normalize_fip(resource)
 
+    def _create(self):
+        params = self._module.params
 
-def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute creation state logic."""
-    params = module.params
+        if params["project_id"] is None or params["region"] is None:
+            self._module.fail_json(
+                "project_id and region are required for creating floating ips"
+            )
 
-    if params["project_id"] is None or params["region"] is None:
-        module.fail_json("project_id and region are required for creating floating ips")
+        if self._module.check_mode:
+            self._module.exit_json(changed=True)
 
-    if module.check_mode:
-        module.exit_json(changed=True)
+        status, resp = self._api_client.send_request(
+            "POST",
+            f"projects/{params['project_id']}/ips",
+            self.timeout,
+            region=params["region"],
+            routed_to=params["route_ip_id"],
+            targeted_to=params["target_server_id"],
+            ptr_record=params["ptr_record"],
+            a_record=params["a_record"],
+            ddos_scrubbing=params["ddos_scrubbing"],
+            tags=params["tags"],
+        )
 
-    status, resp = api_client.send_request(
-        "POST",
-        f"projects/{params['project_id']}/ips",
-        constants.IP_TIMEOUT,
-        region=params["region"],
-        routed_to=params["route_ip_id"],
-        targeted_to=params["target_server_id"],
-        ptr_record=params["ptr_record"],
-        a_record=params["a_record"],
-        ddos_scrubbing=params["ddos_scrubbing"],
-        tags=params["tags"],
-    )
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to create {self.name}: {resp}"
+            )
 
-    if status != 201:
-        module.fail_json(msg=f"Failed to create floating IP: {resp}")
+        self.resource = resp
+        self._exit_with_return()
 
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
+    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
+        status, resp = self._api_client.send_request(
+            "GET",
+            f"ips/{resource_id}",
+            self.timeout,
+        )
+        #  Code 403 can also be returned for a deleted resource, if enough time hasn't passed.
+        if status not in (200, 403, 404):
+            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
+        if status == 200:
+            return resp
+        return None
 
-    fip = get_fip(api_client, module, resp["id"])
-    module.exit_json(changed=True, cherryservers_floating_ip=fip)
+    def _update(self):
+        req, changed = self._get_update_request()
 
+        self._exit_if_no_change_for_update(changed)
 
-def absent_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute deletion state logic."""
-    fip = get_fip(api_client, module, module.params["id"])
-    if fip:
-        if module.check_mode:
-            module.exit_json(changed=True)
-        delete_fip(api_client, module, fip)
-        module.exit_json(changed=True)
-    else:
-        module.exit_json(changed=False)
+        status, resp = self._api_client.send_request(
+            "PUT", f"ips/{self._resource['id']}", self.timeout, **req
+        )
+        if status != 200:
+            self._module.fail_json(
+                msg=f"error {status}, failed to update {self.name}: {resp}"
+            )
 
+        self.resource = resp
+        self._exit_with_return()
 
-def get_fip(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip_id: str
-) -> Optional[dict]:
-    """Retrieve a normalized Cherry Servers floating IP resource."""
-    url = f"ips/{fip_id}"
-    status, resp = api_client.send_request(
-        "GET",
-        url,
-        constants.IP_TIMEOUT,
-    )
-    #  Code 403 can also be returned for a deleted resource, if enough time hasn't passed.
-    if status not in (200, 403, 404):
-        module.fail_json(msg=f"Error getting floating IP: {resp}")
-    if status == 200:
-        return normalizers.normalize_fip(resp)
-    return None
+    def _get_update_request(self) -> Tuple[dict, bool]:
+        """Generate the necessary update request data fields."""
+        req = {}
+        changed = False
+        params = self._module.params
 
+        ptr_org, a_org, target_server_id_org = (
+            self.resource["ptr_record"],
+            self.resource["a_record"],
+            self.resource["target_server_id"],
+        )
 
-def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute update state logic."""
-    fip = get_fip(api_client, module, module.params["id"])
-    req, changed = get_update_request(module.params, fip)
-
-    if module.check_mode:
-        if changed:
-            module.exit_json(changed=True)
+        # prepare for comparison
+        if (
+            self.resource["ptr_record"] is not None
+            and self.resource["ptr_record"][-1] == "."
+        ):
+            self.resource["ptr_record"] = self.resource["ptr_record"][:-1]
         else:
-            module.exit_json(changed=False)
-    else:
-        if not changed:
-            module.exit_json(changed=False, cherryservers_floating_ip=fip)
+            self.resource["ptr_record"] = ""
 
-    status, resp = api_client.send_request(
-        "PUT", f"ips/{fip['id']}", constants.IP_TIMEOUT, **req
-    )
-    if status != 200:
-        module.fail_json(msg=f"Failed to update floating IP address: {resp}")
+        if self.resource["a_record"] is not None:
+            self.resource["a_record"] = self.resource["a_record"].split(
+                ".cloud.cherryservers.net"
+            )[0]
+        else:
+            self.resource["a_record"] = ""
 
-    fip = get_fip(api_client, module, fip["id"])
-    module.exit_json(changed=True, cherryservers_floating_ip=fip)
+        if self.resource["target_server_id"] is None:
+            self.resource["target_server_id"] = 0
 
+        for k in ("ptr_record", "a_record", "tags"):
+            if params[k] is not None and params[k] != self.resource[k]:
+                req[k] = params[k]
+                changed = True
 
-def delete_fip(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip: dict
-):
-    """Delete a single floating IP."""
-    if fip["target_server_id"]:
-        untarget_fip(api_client, module, fip["id"])
-
-    status, resp = api_client.send_request(
-        "DELETE", f"ips/{module.params['id']}", constants.IP_TIMEOUT
-    )
-    if status != 204:
-        module.fail_json(msg=f"Failed to delete floating IP: {resp}")
-
-    module.exit_json(changed=True)
-
-
-def get_update_request(params: dict, fip: dict) -> Tuple[dict, bool]:
-    """Generate the necessary update request data fields."""
-    req = {}
-    changed = False
-
-    ptr_org, a_org, target_server_id_org = (
-        fip["ptr_record"],
-        fip["a_record"],
-        fip["target_server_id"],
-    )
-
-    # prepare for comparison
-    if fip["ptr_record"] is not None and fip["ptr_record"][-1] == ".":
-        fip["ptr_record"] = fip["ptr_record"][:-1]
-    else:
-        fip["ptr_record"] = ""
-
-    if fip["a_record"] is not None:
-        fip["a_record"] = fip["a_record"].split(".cloud.cherryservers.net")[0]
-    else:
-        fip["a_record"] = ""
-
-    if fip["target_server_id"] is None:
-        fip["target_server_id"] = 0
-
-    for k in ("ptr_record", "a_record", "tags"):
-        if params[k] is not None and params[k] != fip[k]:
-            req[k] = params[k]
+        if (
+            params["route_ip_id"] is not None
+            and params["route_ip_id"] != self.resource["route_ip_id"]
+        ):
+            req["routed_to"] = params["route_ip_id"]
             changed = True
 
-    if (
-        params["route_ip_id"] is not None
-        and params["route_ip_id"] != fip["route_ip_id"]
-    ):
-        req["routed_to"] = params["route_ip_id"]
-        changed = True
+        if (
+            params["target_server_id"] is not None
+            and params["target_server_id"] != self.resource["target_server_id"]
+        ):
+            req["targeted_to"] = params["target_server_id"]
+            changed = True
 
-    if (
-        params["target_server_id"] is not None
-        and params["target_server_id"] != fip["target_server_id"]
-    ):
-        req["targeted_to"] = params["target_server_id"]
-        changed = True
+        self.resource["ptr_record"] = ptr_org
+        self.resource["a_record"] = a_org
+        self.resource["target_server_id"] = target_server_id_org
 
-    fip["ptr_record"] = ptr_org
-    fip["a_record"] = a_org
-    fip["target_server_id"] = target_server_id_org
+        return req, changed
 
-    return req, changed
+    def _delete(self):
+        self._exit_if_no_change_for_delete()
 
+        if self._resource["target_server_id"]:
+            self._untarget_fip()
 
-def untarget_fip(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, fip_id: str
-):
-    """Set floating IP target server ID to 0."""
-    status, resp = api_client.send_request(
-        "PUT",
-        f"ips/{fip_id}",
-        constants.IP_TIMEOUT,
-        targeted_to=0,
-    )
-    if status != 200:
-        module.fail_json(msg=f"Failed to untarget floating IP: {resp}")
+        status, resp = self._api_client.send_request(
+            "DELETE", f"ips/{self.resource['id']}", self.timeout
+        )
+        if status != 204:
+            self._module.fail_json(
+                msg=f"error {status}, failed to delete {self.name}: {resp}"
+            )
+
+        self._module.exit_json(changed=True)
+
+    def _untarget_fip(self):
+        """Set floating IP target server ID to 0."""
+        status, resp = self._api_client.send_request(
+            "PUT",
+            f"ips/{self._resource['id']}",
+            self.timeout,
+            targeted_to=0,
+        )
+        if status != 200:
+            self._module.fail_json(
+                msg=f"error {status}, failed to untarget {self.name}: {resp}"
+            )
 
 
 def get_module_args() -> dict:
@@ -399,7 +365,20 @@ def get_module_args() -> dict:
 
 def main():
     """Main function."""
-    run_module()
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+        mutually_exclusive=[["route_ip_id", "target_server_id"]],
+        required_if=[
+            ("state", "absent", ["id"], True),
+        ],
+    )
+
+    api_client = client.CherryServersClient(module)
+    fip_module = FloatingIPModule(module, api_client)
+    fip_module.run()
 
 
 if __name__ == "__main__":

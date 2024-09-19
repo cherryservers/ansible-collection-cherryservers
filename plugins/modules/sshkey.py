@@ -39,7 +39,6 @@ options:
         description:
             - The label of the SSH key.
             - Required if the key doesn't exist.
-        aliases: [name]
         type: str
     id:
         description:
@@ -99,11 +98,6 @@ cherryservers_sshkey:
             returned: always
             type: str
             sample: "54:8e:84:11:bb:29:59:41:36:cb:e2:k2:0c:4a:77:1d"
-        href:
-            description: SSH key href.
-            returned: always
-            type: str
-            sample: /ssh-keys/7955
         id:
             description: SSH key ID.
             returned: always
@@ -127,46 +121,118 @@ cherryservers_sshkey:
 """
 
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
+from typing import Any, Optional, Tuple
+from ..module_utils import client, common, normalizers, base_module
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class SSHKeyModule(base_module.BaseModule):
+    """TODO"""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-    )
+    timeout = 10
 
-    api_client = client.CherryServersClient(module)
-    keys = common.find_resources(
-        api_client,
-        module,
-        ("id", "label", "fingerprint", "key"),
-        "ssh-keys",
-        constants.SSH_TIMEOUT,
-    )
-    if len(keys) > 1:
-        module.fail_json(msg="More than one matching SSH key found.")
+    @property
+    def name(self) -> str:
+        """TODO"""
+        return "cherryservers_sshkey"
 
-    if module.params["state"] == "present":
-        if keys:
-            if check_param_state_diff(module.params, keys[0]):
-                update_key(api_client, module, keys[0]["id"])
-            elif module.check_mode:
-                module.exit_json(changed=False)
-            else:
-                module.exit_json(changed=False, cherryservers_sshkey=keys[0])
-        else:
-            create_key(api_client, module)
-    elif module.params["state"] == "absent":
-        if keys:
-            delete_key(api_client, module, keys[0])
-        else:
-            module.exit_json(changed=False)
+    def _load_resource(self):
+        """TODO"""
+        status, resp = self._api_client.send_request("GET", "ssh-keys", self.timeout)
+        if status != 200:
+            self._module.fail_json(
+                msg=f"error {status}, failed to get {self.name}: {resp}"
+            )
+
+        current_key = None
+        for key in resp:
+            if any(
+                self._module.params[k] is not None and self._module.params[k] == key[k]
+                for k in ("fingerprint", "id", "label", "key")
+            ):
+                if current_key is not None:
+                    self._module.fail_json(msg="error, multiple matching keys found")
+                current_key = key
+
+        self.resource = current_key
+
+    def _normalize(self, resource: dict) -> dict:
+        return normalizers.normalize_ssh_key(resource)
+
+    def _update(self):
+        req, changed = self._get_update_request()
+
+        self._exit_if_no_change_for_update(changed)
+
+        status, resp = self._api_client.send_request(
+            "PUT", f"ssh-keys/{self.resource['id']}", self.timeout, **req
+        )
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to update {self.name}: {resp}"
+            )
+
+        self.resource = resp
+        self._exit_with_return()
+
+    def _delete(self):
+        self._exit_if_no_change_for_delete()
+
+        status, resp = self._api_client.send_request(
+            "DELETE", f"ssh-keys/{self.resource['id']}", self.timeout
+        )
+        if status != 204:
+            self._module.fail_json(
+                msg=f"error {status}, failed to delete {self.name}: {resp}"
+            )
+
+        self._module.exit_json(changed=True)
+
+    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
+        status, resp = self._api_client.send_request(
+            "GET",
+            f"ssh-keys/{resource_id}",
+            self.timeout,
+        )
+        if status not in (200, 404):
+            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
+        if status == 200:
+            return resp
+        return None
+
+    def _create(self):
+        if self._module.params["label"] is None or self._module.params["key"] is None:
+            self._module.fail_json("label and key are required for creating SSH keys.")
+
+        if self._module.check_mode:
+            self._module.exit_json(changed=True)
+
+        status, resp = self._api_client.send_request(
+            "POST",
+            "ssh-keys",
+            self.timeout,
+            label=self._module.params["label"],
+            key=self._module.params["key"],
+        )
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to create {self.name}: {resp}"
+            )
+
+        self.resource = resp
+        self._exit_with_return()
+
+    def _get_update_request(self) -> Tuple[dict, bool]:
+        """Generate the necessary update request data fields."""
+        req = {}
+        changed = False
+        params = self._module.params
+
+        for k in ("label", "key"):
+            if params[k] is not None and params[k] != self.resource[k]:
+                changed = True
+                req[k] = params[k]
+
+        return req, changed
 
 
 def get_module_args() -> dict:
@@ -182,7 +248,6 @@ def get_module_args() -> dict:
             },
             "label": {
                 "type": "str",
-                "aliases": ["name"],
             },
             "key": {
                 "type": "str",
@@ -196,89 +261,18 @@ def get_module_args() -> dict:
     return module_args
 
 
-def check_param_state_diff(module_params: dict, sshkey: dict) -> bool:
-    """Check if module parameters differ from actual state.
-
-    Check if either `label` or `key` are provided in the module params
-    and if they differ from actual SSH key state.
-
-    Args:
-
-        module_params (dict): Module parameters.
-        sshkey (dict): Current SSH key state.
-
-    Returns:
-
-        bool: True if differs from actual SSH key state, False otherwise.
-
-    """
-    return any(
-        module_params[k] is not None and module_params[k] != sshkey[k]
-        for k in ["label", "key"]
-    )
-
-
-def create_key(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Create a new SSH key."""
-    if module.params["label"] is None or module.params["key"] is None:
-        module.fail_json("Label and key are required for creating SSH keys.")
-
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    status, resp = api_client.send_request(
-        "POST",
-        "ssh-keys",
-        constants.SSH_TIMEOUT,
-        label=module.params["label"],
-        key=module.params["key"],
-    )
-    if status != 201:
-        module.fail_json(msg=f"Failed to create SSH key: {resp}")
-    module.exit_json(changed=True, cherryservers_sshkey=resp)
-
-
-def update_key(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, key_id: int
-):
-    """Update an existing SSH key."""
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    status, resp = api_client.send_request(
-        "PUT",
-        f"ssh-keys/{key_id}",
-        constants.SSH_TIMEOUT,
-        label=module.params["label"],
-        key=module.params["key"],
-    )
-    if status != 201:
-        module.fail_json(msg=f"Failed to update SSH key: {resp}")
-    module.exit_json(changed=True, cherryservers_sshkey=resp)
-
-
-def delete_key(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, key: dict
-):
-    """Delete SSH key that matches the modules argument_spec parameters."""
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    key_id = key["id"]
-    status, _2 = api_client.send_request(
-        "DELETE",
-        f"ssh-keys/{key_id}",
-        constants.SSH_TIMEOUT,
-    )
-
-    if status != 204:
-        module.fail_json(f"Failed to delete SSH key: {key_id}")
-    module.exit_json(changed=True)
-
-
 def main():
     """Main function."""
-    run_module()
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+    )
+
+    api_client = client.CherryServersClient(module)
+    ssh_key_module = SSHKeyModule(module, api_client)
+    ssh_key_module.run()
 
 
 if __name__ == "__main__":

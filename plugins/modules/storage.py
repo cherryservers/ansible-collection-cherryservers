@@ -163,240 +163,188 @@ cherryservers_storage:
       sample: "detached"
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
-from ..module_utils import normalizers
+from ..module_utils import client, common, normalizers, base_module
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class StorageModule(base_module.BaseModule):
+    """TODO"""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
+    timeout = 20
 
-    api_client = client.CherryServersClient(module)
+    @property
+    def name(self) -> str:
+        """TODO"""
+        return """cherryservers_storage"""
 
-    if module.params["state"] == "absent":
-        absent_state(api_client, module)
-    elif module.params["id"]:
-        update_state(api_client, module)
-    else:
-        creation_state(api_client, module)
+    def _attach_storage(self, target_server_id: int):
+        """Attach storage volume to server.
 
-
-def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute creation state logic."""
-    params = module.params
-
-    if any(params[k] is None for k in ["project_id", "region", "size"]):
-        module.fail_json(
-            "project_id, region and size are required parameters for storage volume creation"
+        Fail the module if attachment fails.
+        """
+        status, resp = self._api_client.send_request(
+            "POST",
+            f"storages/{self.resource['id']}/attachments",
+            self.timeout,
+            attach_to=target_server_id,
         )
 
-    attach_param_validation(module)
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to attach {self.name}: {resp}"
+            )
 
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    status, resp = api_client.send_request(
-        "POST",
-        f"projects/{params['project_id']}/storages",
-        constants.STORAGE_TIMEOUT,
-        region=params["region"],
-        size=params["size"],
-        description=params["description"],
-    )
-
-    if status != 201:
-        module.fail_json(msg=f"Failed to create storage volume: {resp}")
-
-    if params["state"] == "attached":
-        attach_storage(api_client, module, resp["id"])
-
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
-
-    storage_volume = get_storage(api_client, module, resp["id"])
-    module.exit_json(changed=True, cherryservers_storage=storage_volume)
-
-
-def attach_param_validation(module: utils.AnsibleModule):
-    """Validate that all server attachment parameters are set correctly.
-
-    Fails the module if they are not set correctly.
-    """
-    params = module.params
-    if params["state"] == "attached" and params["target_server_id"] is None:
-        module.fail_json("target_server_id is required if state is attached")
-
-    if params["state"] == "detached" and params["target_server_id"]:
-        module.fail_json("can't use target_server_id with detached storage state")
-
-
-def attach_storage(
-    api_client: client.CherryServersClient,
-    module: utils.AnsibleModule,
-    storage_id: int,
-):
-    """Attach storage volume to server.
-
-    Fail the module if attachment fails.
-    """
-    status, resp = api_client.send_request(
-        "POST",
-        f"storages/{storage_id}/attachments",
-        constants.STORAGE_TIMEOUT,
-        attach_to=module.params["target_server_id"],
-    )
-
-    if status != 201:
-        module.fail_json(msg=f"Failed to attach storage volume: {resp}")
-
-
-def detach_storage(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, storage_id: int
-):
-    """Detach storage volume from server."""
-    status, resp = api_client.send_request(
-        "DELETE",
-        f"storages/{storage_id}/attachments",
-        constants.STORAGE_TIMEOUT,
-    )
-
-    if status != 204:
-        module.fail_json(msg=f"Failed to detach storage volume: {resp}")
-
-
-def absent_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute deletion state logic."""
-    storage = get_storage(api_client, module, module.params["id"])
-    if storage:
-        if module.check_mode:
-            module.exit_json(changed=True)
-        delete_storage(api_client, module, storage)
-        module.exit_json(changed=True)
-    else:
-        module.exit_json(changed=False)
-
-
-def get_storage(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, storage_id: str
-) -> Optional[dict]:
-    """Retrieve a normalized Cherry Servers storage volume resource."""
-    url = f"storages/{storage_id}"
-    status, resp = api_client.send_request(
-        "GET",
-        url,
-        constants.STORAGE_TIMEOUT,
-    )
-
-    if status not in (200, 404):
-        module.fail_json(msg=f"Error getting storage volume: {resp}")
-    if status == 200:
-        return normalizers.normalize_storage(resp)
-    return None
-
-
-def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute update state logic."""
-    storage = get_storage(api_client, module, module.params["id"])
-    if storage is None:
-        module.fail_json(
-            msg=f"Failed to get storage volume with id: {module.params['id']}"
+    def _detach_storage(self):
+        """Detach storage volume from server."""
+        status, resp = self._api_client.send_request(
+            "DELETE",
+            f"storages/{self.resource['id']}/attachments",
+            self.timeout,
         )
 
-    req, changed = get_update_request(module.params, storage)
-    attach_required = False
+        if status != 204:
+            self._module.fail_json(
+                msg=f"error {status}, failed to detach {self.name}: {resp}"
+            )
 
-    if module.params["state"] == "attached":
+    def _normalize(self, resource: dict) -> dict:
+        return normalizers.normalize_storage(resource)
+
+    def _create(self):
+        params = self._module.params
+
+        if any(params[k] is None for k in ["project_id", "region", "size"]):
+            self._module.fail_json(
+                "project_id, region and size are required parameters for storage volume creation"
+            )
+
+        if params["state"] == "attached" and params["target_server_id"] is None:
+            self._module.fail_json("target_server_id is required if state is attached")
+
+        if params["state"] == "detached" and params["target_server_id"]:
+            self._module.fail_json(
+                "can't use target_server_id with detached storage state"
+            )
+
+        if self._module.check_mode:
+            self._module.exit_json(changed=True)
+
+        status, resp = self._api_client.send_request(
+            "POST",
+            f"projects/{params['project_id']}/storages",
+            self.timeout,
+            region=params["region"],
+            size=params["size"],
+            description=params["description"],
+        )
+
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to create {self.name}: {resp}"
+            )
+
+        self.resource = resp
+
+        if params["state"] == "attached":
+            self._attach_storage(self._module.params["target_server_id"])
+
+        self._exit_with_return()
+
+    def _update(self):
+        """Execute update state logic."""
+
+        req, resize_changed = self._get_resize_update_request()
+        detach_required = False
+        attach_required = False
+
+        params = self._module.params
+
+        if params["state"] == "detached" and params["target_server_id"] is not None:
+            self._module.fail_json(
+                msg="can't use target_server_id with detached storage state"
+            )
+
         if (
-            module.params["target_server_id"] is not None
-            and storage["target_server_id"] != module.params["target_server_id"]
+            params["target_server_id"] is not None
+            and params["target_server_id"] != self.resource["target_server_id"]
         ):
-            changed = True
             attach_required = True
-        elif (
-            module.params["target_server_id"] is None
-            and storage["target_server_id"] is None
-        ):
-            module.fail_json("target_server_id is required if state is attached")
-    elif module.params["state"] == "detached":
-        if module.params["target_server_id"] is not None:
-            module.fail_json("can't use target_server_id with detached storage state")
-        if storage["target_server_id"] is not None:
-            changed = True
 
-    if module.check_mode:
-        if changed:
-            module.exit_json(changed=True)
-        else:
-            module.exit_json(changed=False)
-    else:
-        if not changed:
-            module.exit_json(changed=False, cherryservers_storage=storage)
+        if self.resource["state"] == "attached":
+            if attach_required or params["state"] == "detached":
+                detach_required = True
 
-    if module.params["state"] == "detached" and storage["target_server_id"] is not None:
-        detach_storage(api_client, module, storage["id"])
-    if attach_required:
-        if storage["target_server_id"] is not None:
-            detach_storage(api_client, module, storage["id"])
-        attach_storage(api_client, module, storage["id"])
+        changed = resize_changed or detach_required or attach_required
+        self._exit_if_no_change_for_update(changed)
 
-    status, resp = api_client.send_request(
-        "PUT", f"storages/{storage['id']}", constants.STORAGE_TIMEOUT, **req
-    )
-    if status != 201:
-        module.fail_json(msg=f"Failed to update storage volume: {resp}")
+        if detach_required:
+            self._detach_storage()
+        if attach_required:
+            self._attach_storage(self._module.params["target_server_id"])
 
-    storage = get_storage(api_client, module, storage["id"])
-    module.exit_json(changed=True, cherryservers_storage=storage)
+        if resize_changed:
+            status, resp = self._api_client.send_request(
+                "PUT", f"storages/{self.resource['id']}", self.timeout, **req
+            )
+            if status != 201:
+                self._module.fail_json(
+                    msg=f"error {status}, failed to resize {self.name}: {resp}"
+                )
 
+            self.resource = resp
 
-def delete_storage(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, storage: dict
-):
-    """Delete a storage volume."""
-    if storage["target_server_id"]:
-        detach_storage(api_client, module, storage["id"])
+        self._exit_with_return()
 
-    status, resp = api_client.send_request(
-        "DELETE", f"storages/{module.params['id']}", constants.STORAGE_TIMEOUT
-    )
-    if status != 204:
-        module.fail_json(msg=f"Failed to delete storage volume: {resp}")
+    def _get_resize_update_request(self) -> Tuple[dict, bool]:
+        """Get Cherry Servers storage volume update API request.
 
-    module.exit_json(changed=True)
+        Check for differences between current volume state and module options
+        and add the options that have diverged to the update request.
 
+        Returns:
+            Tuple[dict, bool]: A dictionary with the request parameters
+            and a boolean indicating whether there is any difference between the volume state
+            and module options.
+        """
+        req = {}
+        changed = False
+        params = self._module.params
 
-def get_update_request(params: dict, storage: dict) -> Tuple[dict, bool]:
-    """Get Cherry Servers storage volume update API request.
+        for k in ["size", "description"]:
+            if params[k] is not None and params[k] != self.resource[k]:
+                changed = True
+                req[k] = params[k]
 
-    Check for differences between current volume state and module options
-    and add the options that have diverged to the update request.
+        return req, changed
 
-    Returns:
-        Tuple[dict, bool]: A dictionary with the request parameters
-        and a boolean indicating whether there is any difference between the volume state
-        and module options.
-    """
-    req = {}
-    changed = False
+    def _delete(self):
+        self._exit_if_no_change_for_delete()
 
-    for k in ["size", "description"]:
-        if params[k] is not None and params[k] != storage[k]:
-            changed = True
-            req[k] = params[k]
+        if self.resource["state"] == "attached":
+            self._detach_storage()
 
-    return req, changed
+        status, resp = self._api_client.send_request(
+            "DELETE", f"storages/{self.resource['id']}", self.timeout
+        )
+        if status != 204:
+            self._module.fail_json(
+                msg=f"error {status}, failed to delete {self.name}: {resp}"
+            )
+
+        self._module.exit_json(changed=True)
+
+    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
+        status, resp = self._api_client.send_request(
+            "GET",
+            f"storages/{resource_id}",
+            self.timeout,
+        )
+        if status not in (200, 404):
+            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
+        if status == 200:
+            return resp
+        return None
 
 
 def get_module_args() -> dict:
@@ -424,7 +372,19 @@ def get_module_args() -> dict:
 
 def main():
     """Main function."""
-    run_module()
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+        required_if=[
+            ("state", "absent", ["id"], True),
+        ],
+    )
+
+    api_client = client.CherryServersClient(module)
+    storage_module = StorageModule(module, api_client)
+    storage_module.run()
 
 
 if __name__ == "__main__":
