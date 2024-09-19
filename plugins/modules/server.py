@@ -295,278 +295,220 @@ cherryservers_server:
 import base64
 import binascii
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
-from ..module_utils import normalizers
+from ..module_utils import client, common, normalizers, base_module
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class ServerModule(base_module.BaseModule):
+    """TODO"""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
+    timeout = 20
 
-    api_client = client.CherryServersClient(module)
+    def _normalize(self, resource: dict) -> dict:
+        return normalizers.normalize_server(resource, self._api_client, self._module)
 
-    if module.params["state"] == "absent":
-        absent_state(api_client, module)
-    elif module.params["id"]:
-        update_state(api_client, module)
-    else:
-        creation_state(api_client, module)
+    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
+        status, resp = self._api_client.send_request(
+            "GET", f"servers/{resource_id}", self.timeout
+        )
+        if status not in (200, 404):
+            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
+        if status == 200:
+            return resp
+        return None
 
+    @property
+    def name(self) -> str:
+        """TODO"""
+        return "cherryservers_server"
 
-def update_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute update state logic."""
-    server = get_server(api_client, module, module.params["id"])
-    basic_req, basic_changed = get_basic_server_update_request(module.params, server)
-    rebuild_req, rebuild_changed = get_reinstall_server_update_request(
-        module.params, server
-    )
-    changed = basic_changed or rebuild_changed
+    def _create(self):
+        params = self._module.params
 
-    if module.check_mode:
-        if changed:
-            module.exit_json(changed=True)
-        else:
-            module.exit_json(changed=False)
-    else:
-        if not changed:
-            module.exit_json(changed=False, cherryservers_server=server)
+        if any(params[k] is None for k in ("project_id", "region", "plan")):
+            self._module.fail_json(msg="missing required options for server creation.")
 
-    if rebuild_changed:
-        if module.params["allow_reinstall"]:
-            reinstall_server(api_client, module, server, rebuild_req)
-        else:
-            module.fail_json(
-                msg="The options you've selected require server reinstalling."
+        if params["user_data"] is not None:
+            try:
+                base64.b64decode(params["user_data"], validate=True)
+            except binascii.Error as e:
+                self._module.fail_json(msg=f"invalid user_data string: {e}")
+
+        if self._module.check_mode:
+            self._module.exit_json(changed=True)
+
+        status, resp = self._api_client.send_request(
+            "POST",
+            f"projects/{params.get('project_id')}/servers",
+            self.timeout,
+            **{
+                "plan": params["plan"],
+                "image": params["image"],
+                "os_partition_size": params["os_partition_size"],
+                "region": params["region"],
+                "hostname": params["hostname"],
+                "ssh_keys": params["ssh_keys"],
+                "ip_addresses": params["extra_ip_addresses"],
+                "user_data": params["user_data"],
+                "spot_market": params["spot_market"],
+                "storage_id": params["storage_id"],
+                "tags": params["tags"],
+            },
+        )
+
+        if status != 201:
+            self._module.fail_json(
+                msg=f"error {status}, failed to create {self.name}: {resp}"
             )
 
-    if basic_changed:
-        status, resp = api_client.send_request(
-            "PUT", f"servers/{server['id']}", constants.SERVER_TIMEOUT, **basic_req
+        self.resource = resp
+
+        if self._module.params["state"] == "active":
+            self._wait_for_active()
+
+        # We do another read, in case not all fields were properly returned on creation.
+        self.resource = self._read_by_id(self.resource["id"])
+
+        self._module.exit_json(changed=True, **{self.name: self.resource})
+
+    def _wait_for_active(self):
+        """Wait for server to become active."""
+        time_passed = 0
+
+        while self.resource["status"] != "deployed":
+            self.resource = self._read_by_id(self.resource["id"])
+
+            time.sleep(10)
+            time_passed += 10
+
+            if time_passed >= self._module.params["active_timeout"]:
+                self._module.fail_json(
+                    msg=f"timed out waiting for {self.name} to become active"
+                )
+
+    def _update(self):
+        basic_req, basic_changed = self._get_basic_server_update_request()
+        rebuild_req, rebuild_changed = self._get_reinstall_server_update_request()
+        changed = basic_changed or rebuild_changed
+
+        self._exit_if_no_change_for_update(changed)
+
+        if rebuild_changed:
+            if self._module.params["allow_reinstall"]:
+                self._reinstall_server(rebuild_req)
+            else:
+                self._module.fail_json(
+                    msg="the options you've selected require server reinstalling."
+                )
+
+        if basic_changed:
+            status, resp = self._api_client.send_request(
+                "PUT", f"servers/{self.resource['id']}", self.timeout, **basic_req
+            )
+            if status != 201:
+                self._module.fail_json(
+                    msg=f"error {status}, failed to update {self.name}: {resp}"
+                )
+
+        # We do another read, in case not all fields were properly returned after update.
+
+        self.resource = self._read_by_id(self.resource["id"])
+        self._module.exit_json(changed=True, **{self.name: self.resource})
+
+    def _get_basic_server_update_request(self) -> Tuple[dict, bool]:
+        """Get Cherry Servers server update API request.
+
+        Check for differences between current server state and module options
+        and add the options that have diverged to the update request.
+
+        Returns:
+            Tuple[dict, bool]: A dictionary with the request parameters
+            and a boolean indicating whether there is any difference between the server state
+            and module options.
+        """
+        params = self._module.params
+        req = {}
+        changed = False
+
+        for k in ("hostname", "tags"):
+            if params[k] is not None and params[k] != self.resource[k]:
+                req[k] = params[k]
+                changed = True
+
+        return req, changed
+
+    def _get_reinstall_server_update_request(self) -> Tuple[dict, bool]:
+        """Get Cherry Servers server re-install API request.
+
+        Check for differences between current server state and module options
+        and add the options that have diverged to the re-installation request.
+        Options 'user_data' and 'os_partition_size' are not tracked in server state,
+        so any provided option will be considered different from state.
+
+        Returns:
+            Tuple[dict, bool]: A dictionary with the request parameters
+            and a boolean indicating whether there is any difference between the server state
+            and module options.
+        """
+        req = {}
+        changed = False
+        params = self._module.params
+
+        for k in ("user_data", "os_partition_size"):
+            if params[k] is not None:
+                req[k] = params[k]
+                changed = True
+
+        if params["ssh_keys"] is not None:
+            params["ssh_keys"].sort()
+        if self.resource["ssh_keys"] is not None:
+            self.resource["ssh_keys"].sort()
+
+        for k in ("image", "ssh_keys"):
+            if params[k] is not None and params[k] != self.resource[k]:
+                req[k] = params[k]
+                changed = True
+        req["password"] = common.generate_password(16)
+        req["type"] = "reinstall"
+
+        return req, changed
+
+    def _reinstall_server(
+        self,
+        reinstall_req: dict,
+    ):
+        """Re-install Cherry Servers server.
+
+        If re-installation fails, fail the self._module.
+        """
+        status, resp = self._api_client.send_request(
+            "POST",
+            f"servers/{self.resource['id']}/actions",
+            self.timeout,
+            **reinstall_req,
         )
-        if status != 201:
-            module.fail_json(msg=f"Failed to update server: {resp}")
+        if status not in (201, 202):
+            self._module.fail_json(
+                msg=f"error {status}, failed to reinstall {self.name}: {resp}"
+            )
 
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
+        self.resource = resp
 
-    server = get_server(api_client, module, module.params["id"])
-    module.exit_json(changed=True, cherryservers_server=server)
+        if self._module.params["state"] == "active":
+            self._wait_for_active()
 
+    def _delete(self):
+        self._exit_if_no_change_for_delete()
+        status, resp = self._api_client.send_request(
+            "DELETE", f"servers/{self.resource['id']}", self.timeout
+        )
+        if status != 204:
+            self._module.fail_json(
+                f"error {status}, failed to delete {self.name}: {resp}"
+            )
 
-def reinstall_server(
-    api_client: client.CherryServersClient,
-    module: utils.AnsibleModule,
-    server: dict,
-    reinstall_req: dict,
-):
-    """Re-install Cherry Servers server.
-
-    If re-installation fails, fail the module.
-    """
-    status, resp = api_client.send_request(
-        "POST",
-        f"servers/{server['id']}/actions",
-        constants.SERVER_TIMEOUT,
-        **reinstall_req,
-    )
-    if status != 200:
-        module.fail_json(msg=f"Failed to update server: {resp}")
-
-    if module.params["state"] == "active":
-        server["status"] = resp.get("status", None)
-        wait_for_active(server, api_client, module)
-
-
-def get_basic_server_update_request(params: dict, server: dict) -> Tuple[dict, bool]:
-    """Get Cherry Servers server update API request.
-
-    Check for differences between current server state and module options
-    and add the options that have diverged to the update request.
-
-    Returns:
-        Tuple[dict, bool]: A dictionary with the request parameters
-        and a boolean indicating whether there is any difference between the server state
-        and module options.
-    """
-    req = {}
-    changed = False
-
-    for k in ("hostname", "tags"):
-        if params[k] is not None and params[k] != server[k]:
-            req[k] = params[k]
-            changed = True
-
-    return req, changed
-
-
-def get_reinstall_server_update_request(
-    params: dict, server: dict
-) -> Tuple[dict, bool]:
-    """Get Cherry Servers server re-install API request.
-
-    Check for differences between current server state and module options
-    and add the options that have diverged to the re-installation request.
-    Options 'user_data' and 'os_partition_size' are not tracked in server state,
-    so any provided option will be considered different from state.
-
-    Returns:
-        Tuple[dict, bool]: A dictionary with the request parameters
-        and a boolean indicating whether there is any difference between the server state
-        and module options.
-    """
-    req = {}
-    changed = False
-
-    for k in ("user_data", "os_partition_size"):
-        if params[k] is not None:
-            req[k] = params[k]
-            changed = True
-
-    if params["ssh_keys"] is not None:
-        params["ssh_keys"].sort()
-    if server["ssh_keys"] is not None:
-        server["ssh_keys"].sort()
-
-    for k in ("image", "ssh_keys"):
-        if params[k] is not None and params[k] != server[k]:
-            req[k] = params[k]
-            changed = True
-    req["password"] = common.generate_password(16)
-    req["type"] = "reinstall"
-
-    return req, changed
-
-
-def creation_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute creation state logic."""
-    params = module.params
-
-    if any(params[k] is None for k in ("project_id", "region", "plan")):
-        module.fail_json(msg="Missing required options for server creation.")
-
-    if params["user_data"] is not None:
-        try:
-            base64.b64decode(params["user_data"], validate=True)
-        except binascii.Error as e:
-            module.fail_json(msg=f"Invalid user_data string: {e}")
-
-    if module.check_mode:
-        module.exit_json(changed=True)
-
-    server = create_server(api_client, module)
-
-    if module.params["state"] == "active":
-        wait_for_active(server, api_client, module)
-
-    # We need to do another GET request, because the object returned from POST
-    # doesn't contain all the necessary data.
-
-    server = get_server(api_client, module, server["id"])
-
-    module.exit_json(changed=True, cherryservers_server=server)
-
-
-def absent_state(api_client: client.CherryServersClient, module: utils.AnsibleModule):
-    """Execute deletion state logic."""
-    server = get_server(api_client, module, module.params["id"])
-    if server:
-        if module.check_mode:
-            module.exit_json(changed=True)
-        delete_server(api_client, module, server["id"])
-        module.exit_json(changed=True)
-    else:
-        module.exit_json(changed=False)
-
-
-def get_server(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, server_id: int
-) -> Optional[dict]:
-    """Retrieve a normalized Cherry Servers server resource."""
-    status, resp = api_client.send_request(
-        "GET", f"servers/{server_id}", constants.SERVER_TIMEOUT
-    )
-    if status not in (200, 404):
-        module.fail_json(msg=f"Error getting server: {resp}")
-    if status == 200:
-        return normalizers.normalize_server(resp, api_client, module)
-    return None
-
-
-def create_server(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule
-) -> Optional[dict]:
-    """Create a new server.
-
-    Will fail the module if an error occurs.
-
-    Returns:
-        Optional[dict]: Normalized server resource.
-    """
-    params = module.params
-
-    status, resp = api_client.send_request(
-        "POST",
-        f"projects/{params.get('project_id')}/servers",
-        constants.SERVER_TIMEOUT,
-        **{
-            "plan": params["plan"],
-            "image": params["image"],
-            "os_partition_size": params["os_partition_size"],
-            "region": params["region"],
-            "hostname": params["hostname"],
-            "ssh_keys": params["ssh_keys"],
-            "ip_addresses": params["extra_ip_addresses"],
-            "user_data": params["user_data"],
-            "spot_market": params["spot_market"],
-            "storage_id": params["storage_id"],
-            "tags": params["tags"],
-        },
-    )
-
-    if status != 201:
-        module.fail_json(msg=f"Failed to create server: {resp}")
-
-    return normalizers.normalize_server(resp, api_client, module)
-
-
-def wait_for_active(
-    server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
-):
-    """Wait for server to become active."""
-    time_passed = 0
-
-    while server["status"] != "deployed":
-        resp = get_server(api_client, module, server["id"])
-        server = resp
-
-        time.sleep(10)
-        time_passed += 10
-
-        if time_passed >= module.params["active_timeout"]:
-            module.fail_json(msg="Timed out waiting for server to become active")
-
-
-def delete_server(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule, server_id: int
-):
-    """Delete a server."""
-    status, resp = api_client.send_request(
-        "DELETE", f"servers/{server_id}", constants.SERVER_TIMEOUT
-    )
-    if status != 204:
-        module.fail_json(f"Failed to delete server: {resp}")
+        self._module.exit_json(changed=True)
 
 
 def get_module_args() -> dict:
@@ -605,7 +547,21 @@ def get_module_args() -> dict:
 
 def main():
     """Main function."""
-    run_module()
+    module_args = get_module_args()
+
+    module = utils.AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True,
+        required_if=[
+            ("state", "absent", ["id"], True),
+        ],
+    )
+
+    api_client = client.CherryServersClient(module)
+
+    server_module = ServerModule(module, api_client)
+
+    server_module.run()
 
 
 if __name__ == "__main__":

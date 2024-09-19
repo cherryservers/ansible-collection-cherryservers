@@ -383,7 +383,8 @@ disable = [
     "use-implicit-booleaness-not-comparison-to-zero",
     "missing-module-docstring", # Ansible modules don't typically start with a docstring.
     "wrong-import-position", # Ansible module imports don't go to the top of the file. Refer to https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_documenting.html.
-    "relative-beyond-top-level" # Static analysis is unaware of collection structure, relative imports are a simpler alternative to modifying sys.path
+    "relative-beyond-top-level", # Static analysis is unaware of collection structure, relative imports are a simpler alternative to modifying sys.path
+    "attribute-defined-outside-init" # Numerous false positives. See https://github.com/pylint-dev/pylint/issues/3502.
 ]
 
 # Enable the message, report, category or checker with the given id(s). You can
