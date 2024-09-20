@@ -1,0 +1,6 @@
+storage_size: 1
+storage_region: "eu_nord_1"
+storage_description: "storage-test"
+
+storage_updated_description: "storage-update-test"
+storage_updated_size: 2

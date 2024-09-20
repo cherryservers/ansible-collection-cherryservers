@@ -1,0 +1,284 @@
+---
+- name: Run tests
+  block:
+    - name: test create storage with missing parameters
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+      register: storage
+      ignore_errors: true
+    - name: verify create storage with missing parameters
+      ansible.builtin.assert:
+        that:
+          - storage is failed
+
+    - name: test create storage with check mode
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+        target_server_id: "{{ cherryservers_baremetal_server_id }}"
+        description: "{{ storage_description }}"
+        size: "{{ storage_size }}"
+      register: storage
+      check_mode: true
+    - name: verify create storage with check mode
+      ansible.builtin.assert:
+        that:
+          - storage is changed
+
+    - name: test no storage actually created
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        description: "{{ storage_description }}"
+        target_server_id: " {{ cherryservers_baremetal_server_id }}"
+      register: result
+    - name: verify no storage actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 0
+
+    - name: test create storage
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+        target_server_id: "{{ cherryservers_baremetal_server_id }}"
+        description: "{{ storage_description }}"
+        size: "{{ storage_size }}"
+      register: storage
+    - name: verify create storage
+      ansible.builtin.assert:
+        that:
+          - storage is changed
+
+    - name: test storage actually created
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 1
+          - result.cherryservers_storages[0].region == storage_region
+          - result.cherryservers_storages[0].target_server_id == cherryservers_baremetal_server_id
+          - result.cherryservers_storages[0].state == "attached"
+          - result.cherryservers_storages[0].size == storage_size
+          - result.cherryservers_storages[0].description == storage_description
+
+    - name: test create storage idempotency with check mode
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+        target_server_id: "{{ cherryservers_baremetal_server_id }}"
+        description: "{{ storage_description }}"
+        size: "{{ storage_size }}"
+      register: result
+      check_mode: true
+    - name: verify create storage idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test create storage idempotency
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+        target_server_id: "{{ cherryservers_baremetal_server_id }}"
+        description: "{{ storage_description }}"
+        size: "{{ storage_size }}"
+      register: result
+    - name: verify create storage idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test update storage with check mode
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        description: "{{ storage_updated_description }}"
+        size: "{{ storage_updated_size }}"
+        state: "detached"
+      check_mode: true
+      register: result
+    - name: verify update storage with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test storage is not updated
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage is not updated
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages[0].size == storage_size
+          - result.cherryservers_storages[0].description == storage_description
+          - result.cherryservers_storages[0].state == "attached"
+
+    - name: test update storage
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        description: "{{ storage_updated_description }}"
+        size: "{{ storage_updated_size }}"
+        state: "detached"
+      register: storage
+    - name: verify update storage
+      ansible.builtin.assert:
+        that:
+          - storage is changed
+
+    - name: test storage is updated
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage is updated
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages[0].size == storage_updated_size
+          - result.cherryservers_storages[0].description == storage_updated_description
+          - result.cherryservers_storages[0].state == "detached"
+
+    - name: test update storage idempotency with check mode
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        description: "{{ storage_updated_description }}"
+        size: "{{ storage_updated_size }}"
+        state: "detached"
+      register: result
+      check_mode: true
+    - name: verify update storage idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test update storage idempotency
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        description: "{{ storage_updated_description }}"
+        size: "{{ storage_updated_size }}"
+        state: "detached"
+      register: result
+    - name: verify update storage idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test attach storage
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        target_server_id: "{{ cherryservers_baremetal_server_id }}"
+      register: result
+    - name: verify attach storage
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test storage is attached
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage is attached
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages[0].state == "attached"
+
+    - name: test delete storage without id
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+      register: result
+      ignore_errors: true
+    - name: verify delete storage without id
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: test delete storage with check mode
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+      check_mode: true
+    - name: verify delete storage with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test no storage actually deleted
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify no storage actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 1
+
+    - name: test delete storage
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify delete storage
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test storage actually deleted
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 0
+
+    - name: test storage delete idempotency with check mode
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+      check_mode: true
+    - name: verify storage delete idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test storage delete idempotency
+      local.cherryservers.storage:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "absent"
+        id: "{{ storage.cherryservers_storage.id }}"
+      register: result
+    - name: verify storage delete idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+  always:
+    - name: delete storage
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent

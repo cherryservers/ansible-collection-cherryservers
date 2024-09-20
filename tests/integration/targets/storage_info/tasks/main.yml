@@ -1,0 +1,123 @@
+---
+- name: Run tests
+  block:
+    - name: create storage
+      local.cherryservers.storage:
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+        size: "{{ storage_size }}"
+        state: "detached"
+        description: "{{ storage_description }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: storage
+    - name: verify create storage
+      ansible.builtin.assert:
+        that:
+          - storage is changed
+
+    - name: test gather with no params
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      ignore_errors: true
+    - name: verify no options info gathering
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: test gather by project id
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+      register: result
+    - name: verify gather by project id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count >= 1
+          - result is not changed
+
+    - name: test gather by project id with check mode
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+      register: result
+      check_mode: true
+    - name: verify gather by project id with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count >= 1
+          - result is not changed
+
+    - name: test gather with all params
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "detached"
+        id: "{{ storage.cherryservers_storage.id }}"
+        description: "{{ storage_description  }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+      register: result
+    - name: verify gather with all params
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 1
+          - result is not changed
+
+    - name: test gather with all params with check mode
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "detached"
+        id: "{{ storage.cherryservers_storage.id }}"
+        description: "{{ storage_description  }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+      register: result
+      check_mode: true
+    - name: verify gather with all params with check mode
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 1
+          - result is not changed
+
+    - name: test gather with wrong id
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "1"
+      register: result
+    - name: verify gather with wrong id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count == 0
+          - result is not changed
+
+    - name: test gather by region
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ storage_region }}"
+      register: result
+    - name: verify gather by region
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count >= 1
+          - result is not changed
+
+    - name: test gather with detached state
+      local.cherryservers.storage_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "detached"
+        project_id: "{{ cherryservers_project_id }}"
+      register: result
+    - name: verify gather with detached state
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_storages | list | count >= 1
+          - result is not changed
+
+  always:
+    - name: delete storage
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
