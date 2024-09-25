@@ -17,6 +17,7 @@ from typing import Any, Tuple
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.urls import fetch_url
+from ._version import _VERSION
 
 
 class CherryServersClient:  # pylint: disable=too-few-public-methods
@@ -49,6 +50,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         self._headers = {
             "Authorization": f"Bearer {self._auth_token}",
             "Content-Type": "application/json",
+            "User-Agent": f"cherryservers-ansible/{_VERSION}",
         }
 
         self._validate_auth_token()
