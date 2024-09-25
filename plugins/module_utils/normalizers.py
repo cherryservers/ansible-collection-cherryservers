@@ -10,6 +10,8 @@ Functions:
     normalize_ip(ip: dict): Normalize an IP resource.
 
 """
+from typing import Optional
+
 from ansible.module_utils import basic as utils
 from ..module_utils import client
 from ..module_utils import constants
@@ -101,9 +103,14 @@ def get_server_image_slug(  # the module will fail, if it doesn't return str, so
 
 
 def normalize_server(
-    server: dict, api_client: client.CherryServersClient, module: utils.AnsibleModule
+    server: dict,
+    api_client: Optional[client.CherryServersClient] = None,
+    module: Optional[utils.AnsibleModule] = None,
 ) -> dict:
-    """Normalize Cherry Servers server resource."""
+    """Normalize Cherry Servers server resource.
+
+    TODO: write about optional parameters for image slug.
+    """
 
     ips = []
     for ip in server.get("ip_addresses", []):
@@ -121,7 +128,9 @@ def normalize_server(
     for ssh_key in server.get("ssh_keys", []):
         ssh_keys.append(ssh_key["id"])
 
-    image_slug = get_server_image_slug(server, api_client, module)
+    image_slug = None
+    if api_client and module:
+        image_slug = get_server_image_slug(server, api_client, module)
 
     return {
         "hostname": server.get("hostname", None),
