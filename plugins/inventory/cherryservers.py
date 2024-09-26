@@ -13,6 +13,8 @@ author:
 version_added: "0.1.0"
 requirements:
   - python >= 3.9
+extends_documentation_fragment:
+  - inventory_cache
   
 options:
   plugin:
@@ -47,11 +49,11 @@ import json
 
 from ansible.errors import AnsibleParserError
 from ansible.module_utils.urls import Request
-from ansible.plugins.inventory import BaseInventoryPlugin
+from ansible.plugins.inventory import BaseInventoryPlugin, Cacheable
 from ansible.module_utils.six.moves.urllib.error import URLError, HTTPError
 from ..module_utils import normalizers
 
-class InventoryModule(BaseInventoryPlugin):
+class InventoryModule(BaseInventoryPlugin, Cacheable):
     NAME = "local.cherryservers.cherryservers"
 
     def verify_file(self, file_path):
@@ -100,6 +102,21 @@ class InventoryModule(BaseInventoryPlugin):
         super(InventoryModule, self).parse(inventory, loader, path, cache)
 
         self._read_config_data(path)
+        cache_key = self.get_cache_key(path)
 
-        servers = self.get_inventory()
+        user_cache_setting = self.get_option("cache")
+        attempt_to_read_cache = user_cache_setting and cache
+        cache_needs_update = user_cache_setting and not cache
+
+        servers = None
+        if attempt_to_read_cache:
+            try:
+                servers = self._cache[cache_key]
+            except KeyError:
+                cache_needs_update = True
+        if not attempt_to_read_cache or cache_needs_update:
+            servers = self.get_inventory()
+        if cache_needs_update and servers:
+            self._cache[cache_key] = servers
+
         self.populate(servers)
