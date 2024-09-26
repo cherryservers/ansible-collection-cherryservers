@@ -19,7 +19,7 @@ version_added: "0.1.0"
 description:
   - Gather information about your Cherry Servers floating IPs.
   - Returns floating IPs that match all your provided options in the given project.
-  - Alternatively, you can gather information directly by floating IP ID.
+  - Alternatively, you can gather information directly by floating IP ID, all other arguments will be ignored.
 
 options:
     id:
@@ -139,88 +139,56 @@ cherryservers_floating_ips:
       sample: 123456
 """
 
-from typing import List
+from typing import List, Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
-from ..module_utils import normalizers
+from ..module_utils.resource_managers import floating_ip_manager
+from ..module_utils import info_module
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class FloatingIPModule(info_module.InfoModule):
+    """Floating IP module"""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_one_of=[("project_id", "id")],
-    )
+    def __init__(self):
+        super().__init__()
+        self._resource_manager = floating_ip_manager.FloatingIPManager(self._module)
 
-    api_client = client.CherryServersClient(module)
+    def _filter(self, resource: dict) -> bool:
+        params = self._module.params
 
-    if module.params["id"] is not None:
-        fips = get_single_fip(api_client, module)
-    else:
-        fips = get_multiple_fips(api_client, module)
+        if resource["type"] != "floating-ip":
+            return False
 
-    r = []
+        if all(
+            params[k] is None or params[k] == resource[k]
+            for k in ["id", "address", "project_id", "region", "target_server_id"]
+        ) and (
+            params["tags"] is None
+            or all(params["tags"][k] == resource["tags"].get(k) for k in params["tags"])
+        ):
+            return True
+        return False
 
-    for fip in fips:
-        fip = normalizers.normalize_fip(fip)
-        if fip_filter(module.params, fip):
-            r.append(fip)
+    def _resource_uniquely_identifiable(self) -> bool:
+        if self._module.params.get("id") is None:
+            return False
+        return True
 
-    module.exit_json(changed=False, cherryservers_floating_ips=r)
+    def _get_single_resource(self) -> Optional[dict]:
+        return self._resource_manager.get_by_id(self._module.params.get("id"))
 
+    def _get_resource_list(self) -> List[dict]:
+        return self._resource_manager.get_by_project_id(
+            self._module.params.get("project_id")
+        )
 
-def get_single_fip(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule
-) -> List[dict]:
-    """Get a single floating IP from the Cherry Servers client.
+    @property
+    def name(self) -> str:
+        """Cherry Servers resource name."""
+        return "cherryservers_floating_ips"
 
-    This IP is returned as a single dictionary entry in a list, for easier
-    compatibility with multiple IP returning functionality.
-    """
-    status, resp = api_client.send_request(
-        "GET", f"ips/{module.params['id']}", constants.IP_TIMEOUT
-    )
-
-    ip = []
-
-    if status not in (200, 403, 404):
-        module.fail_json(msg=f"Error getting floating IP: {resp}")
-    if status == 200:
-        ip.append(resp)
-
-    return ip
-
-
-def get_multiple_fips(
-    api_client: client.CherryServersClient, module: utils.AnsibleModule
-) -> List[dict]:
-    """Get multiple floating IPs from the Cherry Servers client."""
-    params = module.params
-
-    status, resp = api_client.send_request(
-        "GET", f"projects/{params['project_id']}/ips", constants.IP_TIMEOUT
-    )
-
-    if status not in (200, 403, 404):
-        module.fail_json(msg=f"Error getting floating IPs: {resp}")
-
-    if status == 200:
-        return resp
-
-    return []
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "tags": {
                 "type": "dict",
             },
@@ -230,33 +198,18 @@ def get_module_args() -> dict:
             "project_id": {"type": "int"},
             "target_server_id": {"type": "int"},
         }
-    )
 
-    return module_args
-
-
-def fip_filter(module_params: dict, fip: dict) -> bool:
-    """Check if the floating IP address should be included in the response."""
-    if fip["type"] != "floating-ip":
-        return False
-
-    if all(
-        module_params[k] is None or module_params[k] == fip[k]
-        for k in ["id", "address", "project_id", "region", "target_server_id"]
-    ) and (
-        module_params["tags"] is None
-        or all(
-            module_params["tags"][k] == fip["tags"].get(k)
-            for k in module_params["tags"]
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+            required_one_of=[("project_id", "id")],
         )
-    ):
-        return True
-    return False
 
 
 def main():
     """Main function."""
-    run_module()
+    FloatingIPModule().run()
 
 
 if __name__ == "__main__":

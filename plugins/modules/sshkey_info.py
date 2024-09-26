@@ -18,8 +18,8 @@ version_added: "0.1.0"
 
 description:
   - Gather information about your Cherry Servers SSH keys.
-  - Returns SSH keys that match all of your provided options.
-  - If you provide no options, returns all your SSH keys.
+  - Set O(id) to get a specific key (all other arguments are ignored).
+  - You can also search for SSH keys that match all of your provided arguments, except O(id).
 
 options:
     key:
@@ -34,6 +34,7 @@ options:
     id:
         description:
             - The ID of the SSH key.
+            - Set this to get a specific key (all other arguments are ignored).
         type: int
     fingerprint:
         description:
@@ -54,6 +55,12 @@ EXAMPLES = r"""
     auth_token: "{{ auth_token }}"
     id: 0000
   register: result
+
+- name: Get SSH key by label
+  local.cherryservers.sshkey_info:
+    auth_token: "{{ auth_token }}"
+    label: "my-key"
+  register: result
 """
 
 RETURN = r"""
@@ -73,11 +80,6 @@ cherryservers_sshkeys:
       returned: always
       type: str
       sample: "54:8e:84:11:bb:29:59:41:36:cb:e2:k2:0c:4a:77:1d"
-    href:
-      description: SSH key href.
-      returned: always
-      type: str
-      sample: /ssh-keys/7955
     id:
       description: SSH key ID.
       returned: always
@@ -99,56 +101,45 @@ cherryservers_sshkeys:
       type: str
       sample: "2024-08-06T07:56:16+00:00"
 """
-
+from typing import Optional, List
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
+from ..module_utils import info_module
+from ..module_utils.resource_managers import sshkey_manager
 
 
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
+class SSHKeyInfoModule(info_module.InfoModule):
+    """SSH key module."""
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-    )
+    def __init__(self):
+        super().__init__()
+        self._resource_manager = sshkey_manager.SSHKeyManager(self._module)
 
-    api_client = client.CherryServersClient(module)
+    def _resource_uniquely_identifiable(self) -> bool:
+        if self._module.params.get("id") is None:
+            return False
+        return True
 
-    status, resp = api_client.send_request(
-        "GET",
-        "ssh-keys",
-        constants.SSH_TIMEOUT,
-    )
-    if status != 200:
-        module.fail_json(msg=f"Failed to get SSH keys: {resp}")
+    def _filter(self, resource: dict) -> bool:
+        params = self._module.params
+        return all(
+            params[k] is None or resource[k] == params[k]
+            for k in ("id", "fingerprint", "label", "key")
+        )
 
-    temp_keys = []
+    def _get_single_resource(self) -> Optional[dict]:
+        return self._resource_manager.get_by_id(self._module.params["id"])
 
-    for key in resp:
-        if sshkey_filter(module.params, key):
-            temp_keys.append(key)
+    def _get_resource_list(self) -> List[dict]:
+        return self._resource_manager.get_all()
 
-    resp = temp_keys
+    @property
+    def name(self) -> str:
+        """SSH key resource name."""
+        return "cherryservers_sshkeys"
 
-    # We delete 'user' from the response because of an API peculiarity:
-    # each returned SSH key contains a `user` field, that
-    # contains all the SSH keys the user has. This results in significant duplication.
-
-    for key in resp:
-        del key["user"]
-
-    module.exit_json(changed=False, cherryservers_sshkeys=resp)
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "label": {
                 "type": "str",
                 "aliases": ["name"],
@@ -160,22 +151,17 @@ def get_module_args() -> dict:
             "id": {"type": "int"},
             "fingerprint": {"type": "str"},
         }
-    )
 
-    return module_args
-
-
-def sshkey_filter(module_params: dict, sshkey: dict) -> bool:
-    """Check if the key should be included in the response."""
-    return all(
-        module_params[k] is None or sshkey[k] == module_params[k]
-        for k in ("id", "fingerprint", "label", "key")
-    )
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+        )
 
 
 def main():
     """Main function."""
-    run_module()
+    SSHKeyInfoModule().run()
 
 
 if __name__ == "__main__":

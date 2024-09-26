@@ -16,12 +16,12 @@ requirements:
 extends_documentation_fragment:
   - inventory_cache
   - constructed
-  
+
 options:
   plugin:
     description:
       - Inventory plugin to use.
-      - Should always be O(local.cherryservers.cherryservers).
+      - Should always be V(local.cherryservers.cherryservers).
     required: true
     choices: ['local.cherryservers.cherryservers']
   auth_token:
@@ -51,7 +51,7 @@ options:
   status:
     description:
       - Populate inventory with instances that have this status,
-      - for example O(deployed).
+      - for example V(deployed).
     type: str
     required: false
   tags:

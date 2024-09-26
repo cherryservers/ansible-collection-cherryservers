@@ -19,12 +19,13 @@ version_added: "0.1.0"
 description:
   - Gather information about your Cherry Servers servers.
   - Returns servers that match all your provided options in the given project.
-  - Alternatively, you can get a single server by specifying its ID.
+  - Alternatively, you can get a single server by specifying its ID, all other arguments ar ignored.
 
 options:
     id:
         description:
             - ID of the server.
+            - Required if O(project_id) is not provided.
         type: int
     project_id:
         description:
@@ -58,7 +59,6 @@ options:
     storage_id:
         description:
             - Elastic block storage ID.
-            - TODO.
         type: int
 extends_documentation_fragment:
   - local.cherryservers.cherryservers
@@ -195,82 +195,61 @@ cherryservers_servers:
         env: "dev"
 """
 
-from typing import List
+from typing import List, Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import common
-from ..module_utils import client
-from ..module_utils import normalizers
-from ..module_utils import constants
+from ..module_utils import info_module
+from ..module_utils.resource_managers import server_manager
 
 
-def run_module():
-    """Execute the ansible module."""
+class ServerInfoModule(info_module.InfoModule):
+    """Server info module."""
 
-    module_args = get_module_args()
+    def __init__(self):
+        super().__init__()
+        self._resource_manager = server_manager.ServerManager(self._module)
 
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_one_of=[("project_id", "id")],
-    )
+    def _resource_uniquely_identifiable(self) -> bool:
+        if self._module.params.get("id") is None:
+            return False
+        return True
 
-    api_client = client.CherryServersClient(module)
+    def _filter(self, resource: dict) -> bool:
+        params = self._module.params
+        if all(
+            params[k] is None or params[k] == resource[k]
+            for k in (
+                "region",
+                "hostname",
+                "plan",
+                "image",
+                "id",
+                "project_id",
+                "spot_market",
+                "storage_id",
+            )
+        ) and (
+            params["tags"] is None
+            or all(params["tags"][k] == resource["tags"].get(k) for k in params["tags"])
+        ):
+            return True
+        return False
 
-    if module.params["id"] is not None:
-        servers = get_single_server(api_client, module)
-    else:
-        servers = get_multiple_servers(api_client, module)
+    def _get_single_resource(self) -> Optional[dict]:
+        return self._resource_manager.get_by_id(self._module.params["id"])
 
-    r = []
+    def _get_resource_list(self) -> List[dict]:
+        return self._resource_manager.get_by_project_id(
+            self._module.params["project_id"]
+        )
 
-    for server in servers:
-        server = normalizers.normalize_server(server, api_client, module)
-        if server_filter(module.params, server):
-            r.append(server)
+    @property
+    def name(self) -> str:
+        """Server resource name"""
+        return "cherryservers_servers"
 
-    module.exit_json(changed=False, cherryservers_servers=r)
-
-
-def get_single_server(api_client: client, module: utils.AnsibleModule) -> List[dict]:
-    """Get a single server from the Cherry Servers client.
-
-    This server is returned as a single dictionary entry in a list, for easier
-    compatibility with multiple server returning functionality.
-    """
-    status, resp = api_client.send_request(
-        "GET", f"servers/{module.params['id']}", constants.SERVER_TIMEOUT
-    )
-
-    servers = []
-
-    if status == 200:
-        servers.append(resp)
-    elif status != 404:
-        module.fail_json(msg=f"Unexpected client error: {resp}")
-
-    return servers
-
-
-def get_multiple_servers(api_client: client, module: utils.AnsibleModule) -> List[dict]:
-    """Get multiple servers from the Cherry Servers client."""
-    params = module.params
-
-    status, resp = api_client.send_request(
-        "GET", f"projects/{params['project_id']}/servers", constants.SERVER_TIMEOUT
-    )
-
-    if status not in (200, 404):
-        module.fail_json(msg=f"Unexpected client error: {resp}")
-
-    return resp
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "tags": {
                 "type": "dict",
             },
@@ -283,39 +262,18 @@ def get_module_args() -> dict:
             "spot_market": {"type": "bool"},
             "storage_id": {"type": "int"},
         }
-    )
 
-    return module_args
-
-
-def server_filter(module_params: dict, server: dict) -> bool:
-    """Check if the server should be included in the response."""
-    if all(
-        module_params[k] is None or module_params[k] == server[k]
-        for k in (
-            "region",
-            "hostname",
-            "plan",
-            "image",
-            "id",
-            "project_id",
-            "spot_market",
-            "storage_id",
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+            required_one_of=[("project_id", "id")],
         )
-    ) and (
-        module_params["tags"] is None
-        or all(
-            module_params["tags"][k] == server["tags"].get(k)
-            for k in module_params["tags"]
-        )
-    ):
-        return True
-    return False
 
 
 def main():
     """Main function."""
-    run_module()
+    ServerInfoModule().run()
 
 
 if __name__ == "__main__":

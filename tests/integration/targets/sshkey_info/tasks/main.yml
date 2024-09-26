@@ -60,11 +60,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "1234"
       register: result
+      ignore_errors: true
     - name: verify gather key by id wrong
       ansible.builtin.assert:
         that:
-          - result.cherryservers_sshkeys | list | count == 0
-          - result is not changed
+          - result is failed
 
     - name: test gather key by fingerprint
       local.cherryservers.sshkey_info:
