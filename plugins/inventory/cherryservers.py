@@ -15,6 +15,7 @@ requirements:
   - python >= 3.9
 extends_documentation_fragment:
   - inventory_cache
+  - constructed
   
 options:
   plugin:
@@ -34,7 +35,7 @@ options:
       - name: CHERRY_AUTH_KEY
   project_id:
     description:
-      - ID of the project to get server list for.
+      - ID of the project to get servers from.
     type: int
     required: true
   variable_prefix:
@@ -42,29 +43,73 @@ options:
       - Host variable prefix.
     type: str
     default: "cs_"
-  
+  region:
+    description:
+      - Populate inventory with instances that belong to this region slug.
+    type: str
+    required: false
+  status:
+    description:
+      - Populate inventory with instances that have this status,
+      - for example O(deployed).
+    type: str
+    required: false
+  tags:
+    description:
+      - Populate inventory with instances that have these tags.
+    type: dict
+    required: false
+"""
+
+EXAMPLES = """
+# Get all servers from a project.
+plugin: local.cherryservers.cherryservers
+project_id: 123456
+auth_token: "my_api_key"
+
+# Get all servers from a specified region and that have the specified tags.
+plugin: local.cherryservers.cherryservers
+project_id: 123456
+auth_token: "my_api_key"
+region: "eu_nord_1"
+tags:
+  env: "test"
+
+# Use grouping.
+plugin: local.cherryservers.cherryservers
+project_id: 123456
+auth_token: "my_api_key"
+keyed_groups:
+  - key: cs_region
+    prefix: region
+    separator: "_"
+groups:
+  deployed: "cs_status == 'deployed'"
 """
 
 import json
 
 from ansible.errors import AnsibleParserError
 from ansible.module_utils.urls import Request
-from ansible.plugins.inventory import BaseInventoryPlugin, Cacheable
+from ansible.plugins.inventory import BaseInventoryPlugin, Cacheable, Constructable
 from ansible.module_utils.six.moves.urllib.error import URLError, HTTPError
 from ..module_utils import normalizers
 
-class InventoryModule(BaseInventoryPlugin, Cacheable):
+
+class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
+    """Inventory plugin class for Cherry Servers."""
     NAME = "local.cherryservers.cherryservers"
 
-    def verify_file(self, file_path):
+    def verify_file(self, path):
+        """Determine if the inventory source file is valid."""
         valid = False
-        if super(InventoryModule, self).verify_file(file_path):
-            if file_path.endswith(("cherryservers.yml", "cherryservers.yaml")):
+        if super(InventoryModule, self).verify_file(path):
+            if path.endswith(("cherryservers.yml", "cherryservers.yaml")):
                 valid = True
 
         return valid
 
-    def get_inventory(self):
+    def _get_inventory(self):
         auth_token = self.get_option("auth_token")
         auth_token = self.templar.template(auth_token)
 
@@ -87,16 +132,52 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
 
         return response
 
-    def populate(self, servers):
+    def _filter(self, server: dict) -> bool:
+        region = self.get_option("region")
+        status = self.get_option("status")
+        tags = self.get_option("tags")
+
+        exclude = False
+
+        if region and region != server["region"]:
+            exclude = True
+
+        if status and status != server["status"]:
+            exclude = True
+
+        if tags and not tags.items() <= server["tags"].items():
+            exclude = True
+
+        return exclude
+
+    def _populate(self, servers):
         variable_prefix = self.get_option("variable_prefix")
+        strict = self.get_option("strict")
+
         for server in servers:
-            self.inventory.add_host(server["hostname"])
             server = normalizers.normalize_server(server)
+            if self._filter(server):
+                continue
+            self.inventory.add_host(server["hostname"])
             host_vars = {}
             for k, v in server.items():
                 host_vars[variable_prefix + k] = v
             for k, v in host_vars.items():
                 self.inventory.set_variable(server["hostname"], k, v)
+
+            self._set_composite_vars(
+                self.get_option("compose"), host_vars, server["hostname"], strict=True
+            )
+
+            self._add_host_to_composed_groups(
+                self.get_option("groups"), host_vars, server["hostname"], strict=strict
+            )
+            self._add_host_to_keyed_groups(
+                self.get_option("keyed_groups"),
+                host_vars,
+                server["hostname"],
+                strict=strict,
+            )
 
     def parse(self, inventory, loader, path, cache=True):
         super(InventoryModule, self).parse(inventory, loader, path, cache)
@@ -115,8 +196,8 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
             except KeyError:
                 cache_needs_update = True
         if not attempt_to_read_cache or cache_needs_update:
-            servers = self.get_inventory()
+            servers = self._get_inventory()
         if cache_needs_update and servers:
             self._cache[cache_key] = servers
 
-        self.populate(servers)
+        self._populate(servers)
