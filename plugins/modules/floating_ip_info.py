@@ -146,7 +146,7 @@ from ..module_utils import info_module
 
 
 class FloatingIPModule(info_module.InfoModule):
-    """Floating IP module"""
+    """Floating IP info module"""
 
     def __init__(self):
         super().__init__()

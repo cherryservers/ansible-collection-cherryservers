@@ -150,7 +150,7 @@ from ..module_utils.resource_managers.storage_manager import StorageManager
 
 
 class StorageInfoModule(info_module.InfoModule):
-    """TODO"""
+    """Storage info module."""
 
     def __init__(self):
         super().__init__()
@@ -180,7 +180,7 @@ class StorageInfoModule(info_module.InfoModule):
 
     @property
     def name(self) -> str:
-        """TODO"""
+        """Storage resource name."""
         return "cherryservers_storages"
 
     @property

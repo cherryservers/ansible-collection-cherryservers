@@ -1,6 +1,11 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-"""TODO"""
+"""Cherry Servers ansible info module.
+
+Classes:
+    InfoModule
+
+"""
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -8,26 +13,49 @@ from . import module
 
 
 class InfoModule(module.Module, ABC):
-    """TODO"""
+    """Cherry Servers ansible info module base class."""
 
     @abstractmethod
     def _filter(self, resource: dict) -> bool:
-        """TODO"""
+        """Check if the provided resource should be included in the response.
+
+        Check if the resource matches the provided module arguments for gathering.
+
+        Args:
+
+            resource (dict): Resource to be checked.
+
+        Returns:
+
+            bool: True if the resource should be included in the response, False otherwise.
+        """
 
     @abstractmethod
     def _resource_uniquely_identifiable(self) -> bool:
-        pass
+        """Check if the module has unique identifiers provided.
+
+        Returns:
+            bool: True if the module has arguments that can uniquely identify a resource. False otherwise.
+        """
 
     @abstractmethod
     def _get_single_resource(self) -> dict:
-        pass
+        """Get a single resource, typically by its ID.
+
+        Returns:
+            dict: Normalized Cherry Servers resource.
+        """
 
     @abstractmethod
     def _get_resource_list(self) -> List[dict]:
-        pass
+        """Get a list of resources, typically by project ID.
+
+        Returns:
+            List[dict]: A list of normalized Cherry Servers resources.
+        """
 
     def run(self):
-        """TODO"""
+        """Default execution logic for the info module."""
         resources = []
         if self._resource_uniquely_identifiable():
             resources.append(self._get_single_resource())

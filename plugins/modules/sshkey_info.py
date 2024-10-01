@@ -108,7 +108,7 @@ from ..module_utils.resource_managers import sshkey_manager
 
 
 class SSHKeyInfoModule(info_module.InfoModule):
-    """SSH key module."""
+    """SSH key info module."""
 
     def __init__(self):
         super().__init__()
