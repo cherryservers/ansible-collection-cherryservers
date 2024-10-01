@@ -143,34 +143,21 @@ cherryservers_storages:
       sample: "detached"
 """
 
+from typing import List
 from ansible.module_utils import basic as utils
-from ..module_utils import client
-from ..module_utils import common
-from ..module_utils import constants
-from ..module_utils import normalizers
-from ..module_utils import info_module_base
+from ..module_utils import info_module
+from ..module_utils.resource_managers.storage_manager import StorageManager
 
 
-class StorageInfoModule(info_module_base.InfoModuleBase):
-    """Info module implementation for Cherry Servers EBS volumes.
+class StorageInfoModule(info_module.InfoModule):
+    """TODO"""
 
-    For more information, see base class documentation.
-    """
-
-    @property
-    def _name(self) -> str:
-        return "cherryservers_storages"
-
-    @property
-    def _timeout(self) -> int:
-        return constants.STORAGE_TIMEOUT
-
-    @property
-    def _get_by_id_url(self) -> str:
-        return "storages/{id}"
+    def __init__(self):
+        super().__init__()
+        self._resource_manager = StorageManager(self._module)
 
     def _filter(self, resource: dict) -> bool:
-        params = self.module.params
+        params = self._module.params
         if all(
             params[k] is None or params[k] == resource[k]
             for k in ["id", "description", "region", "target_server_id", "state"]
@@ -178,35 +165,27 @@ class StorageInfoModule(info_module_base.InfoModuleBase):
             return True
         return False
 
-    def _normalize(self, raw_resource: dict) -> dict:
-        return normalizers.normalize_storage(raw_resource)
+    def _get_resource_list(self) -> List[dict]:
+        return self._resource_manager.get_by_project_id(
+            self._module.params["project_id"]
+        )
+
+    def _get_single_resource(self) -> dict:
+        return self._resource_manager.get_by_id(self._module.params["id"])
+
+    def _resource_uniquely_identifiable(self) -> bool:
+        if self._module.params["id"] is None:
+            return False
+        return True
 
     @property
-    def _get_by_project_id_url(self) -> str:
-        return "projects/{project_id}/storages"
+    def name(self) -> str:
+        """TODO"""
+        return "cherryservers_storages"
 
-
-def run_module():
-    """Execute the ansible module."""
-    module_args = get_module_args()
-
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_one_of=[("project_id", "id")],
-    )
-
-    api_client = client.CherryServersClient(module)
-
-    StorageInfoModule(api_client, module).run()
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "state": {
                 "choices": ["attached", "detached"],
                 "type": "str",
@@ -217,14 +196,18 @@ def get_module_args() -> dict:
             "project_id": {"type": "int"},
             "target_server_id": {"type": "int"},
         }
-    )
 
-    return module_args
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+            required_one_of=[("project_id", "id")],
+        )
 
 
 def main():
     """Main function."""
-    run_module()
+    StorageInfoModule().run()
 
 
 if __name__ == "__main__":
