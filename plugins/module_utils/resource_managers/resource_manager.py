@@ -61,7 +61,7 @@ class ResourceManager(ABC):
             self._get_by_id_request.timeout,
         )
         if status not in self._get_by_id_request.valid_status_codes:
-            self.module.fail_json(msg=self._build_api_error_msg("get", status, resp))
+            self.module.fail_json(msg=self._build_api_error_msg("GET", status, resp))
         return self._normalize(resp)
 
     def get_by_project_id(self, project_id: int) -> List[dict]:
@@ -72,8 +72,46 @@ class ResourceManager(ABC):
             self._get_by_project_id_request.timeout,
         )
         if status not in self._get_by_project_id_request.valid_status_codes:
-            self.module.fail_json(msg=self._build_api_error_msg("get", status, resp))
+            self.module.fail_json(msg=self._build_api_error_msg("GET", status, resp))
         normalized_resources = []
         for resource in resp:
             normalized_resources.append(self._normalize(resource))
         return normalized_resources
+
+    def post_by_id(
+        self, resource_id: Any, request_templ: RequestTemplate, request_params: dict
+    ) -> dict:
+        """TODO"""
+        status, resp = self.api_client.send_request(
+            "POST",
+            request_templ.url_template.format(id=resource_id),
+            request_templ.timeout,
+            **request_params,
+        )
+        if status not in request_templ.valid_status_codes:
+            self.module.fail_json(msg=self._build_api_error_msg("POST", status, resp))
+        return self._normalize(resp)
+
+    def put_by_id(
+        self, resource_id: Any, request_templ: RequestTemplate, request_params: dict
+    ) -> dict:
+        """TODO"""
+        status, resp = self.api_client.send_request(
+            "PUT",
+            request_templ.url_template.format(id=resource_id),
+            request_templ.timeout,
+            **request_params,
+        )
+        if status not in request_templ.valid_status_codes:
+            self.module.fail_json(msg=self._build_api_error_msg("PUT", status, resp))
+        return self._normalize(resp)
+
+    def delete_by_id(self, resource_id: Any, request_templ: RequestTemplate):
+        """TODO"""
+        status, resp = self.api_client.send_request(
+            "DELETE",
+            request_templ.url_template.format(id=resource_id),
+            request_templ.timeout,
+        )
+        if status not in request_templ.valid_status_codes:
+            self.module.fail_json(msg=self._build_api_error_msg("DELETE", status, resp))

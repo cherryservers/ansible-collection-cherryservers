@@ -81,7 +81,6 @@
     - name: test server creation idempotency with check mode
       local.cherryservers.server:
         auth_token: "{{ cherryservers_api_key }}"
-        id: "{{ server.cherryservers_server.id }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         plan: "{{ server_plan }}"
@@ -100,7 +99,6 @@
     - name: test server creation idempotency
       local.cherryservers.server:
         auth_token: "{{ cherryservers_api_key }}"
-        id: "{{ server.cherryservers_server.id }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         plan: "{{ server_plan }}"
@@ -117,9 +115,9 @@
 
     - name: test reinstall server with no allow_reinstall
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        hostname: "{{ server_hostname }}"
+        project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_update_tags }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         user_data: "{{ server_user_data }}"
@@ -133,9 +131,9 @@
 
     - name: test reinstall server with check mode
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        project_id: "{{ cherryservers_project_id }}"
+        hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
         ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         user_data: "{{ server_user_data }}"
@@ -152,7 +150,7 @@
       local.cherryservers.server_info:
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
         image: "{{ server_reinstall_image }}"
       register: result
@@ -164,9 +162,9 @@
 
     - name: test reinstall server
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        hostname: "{{ server_hostname }}"
+        project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_update_tags }}"
         ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         user_data: "{{ server_user_data }}"
@@ -180,9 +178,9 @@
 
     - name: test reinstall server actually happened
       local.cherryservers.server_info:
-        id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        project_id: "{{ cherryservers_project_id }}"
+        hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
         image: "{{ server_reinstall_image }}"
       register: result
@@ -190,14 +188,13 @@
       ansible.builtin.assert:
         that:
           - result.cherryservers_servers | list | count == 1
-          - result.cherryservers_servers[0].hostname == server_update_hostname
           - result.cherryservers_servers[0].tags == server_update_tags
           - result.cherryservers_servers[0].image == server_reinstall_image
           - result.cherryservers_servers[0].ssh_keys[0] == sshkey.cherryservers_sshkey.id
 
     - name: test server reinstall idempotency with check mode
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
+        project_id: "{{ cherryservers_project_id }}"
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_update_hostname }}"
         tags: "{{ server_update_tags }}"
@@ -213,9 +210,9 @@
 
     - name: test server reinstall idempotency
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        project_id: "{{ cherryservers_project_id }}"
+        hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_reinstall_image }}"
@@ -229,7 +226,8 @@
   always:
     - name: delete servers
       local.cherryservers.server:
-        id: "{{ server.cherryservers_server.id }}"
+        project_id: "{{ cherryservers_project_id }}"
+        hostname: "{{ server_hostname }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete ssh key

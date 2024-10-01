@@ -18,7 +18,7 @@ version_added: "0.1.0"
 
 description:
     - Create, update and delete servers on Cherry Servers.
-    - If you want to manage an existing server, set O(id) along with state and other desired options.
+    - To update existing servers, you must use O(id) or a combination of O(project_id) and O(hostname) to identify them.
 
 options:
     state:
@@ -34,12 +34,14 @@ options:
         description:
             - ID of the server.
             - Used to identify existing servers.
-            - Required if server exists.
+            - Cannot be set.
+            - Required if server exists and O(hostname) is not provided.
         type: int
     project_id:
         description:
             - The ID of the project the server belongs to.
             - Required if server doesn't exist.
+            - Required if server exists and O(id) is not provided.
             - Cannot be set for an existing server.
         type: str
     plan:
@@ -69,6 +71,8 @@ options:
     hostname:
         description:
             - Server hostname.
+            - Can be used to identify existing servers.
+            - Required if server exists and O(id) is not provided.
         type: str
     ssh_keys:
         description:
@@ -104,7 +108,9 @@ options:
     storage_id:
         description:
             - Elastic block storage ID.
-            - TODO.
+            - Cannot be updated after creation.
+            - If you wish to attach storage to a server after it has been created,
+            - use the C(storage) module instead.
         type: int
     active_timeout:
         description:
@@ -294,36 +300,86 @@ cherryservers_server:
 
 import base64
 import binascii
-import time
-from typing import Optional, Tuple, Any
+from typing import Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import client, common, normalizers, base_module
+from ..module_utils import common, standard_module
+from ..module_utils.resource_managers.server_manager import ServerManager
 
 
-class ServerModule(base_module.BaseModule):
+class ServerModule(standard_module.StandardModule):
     """TODO"""
 
-    timeout = 20
+    def __init__(self):
+        super().__init__()
+        self._server_manager = ServerManager(self._module)
 
-    def _normalize(self, resource: dict) -> dict:
-        return normalizers.normalize_server(resource, self._api_client, self._module)
+    def _get_resource(self) -> Optional[dict]:
+        resource = None
+        params = self._module.params
+        if params["id"]:
+            resource = self._server_manager.get_by_id(params["id"])
+        elif params["hostname"] and params["project_id"]:
+            possible_servers = self._server_manager.get_by_project_id(
+                params["project_id"]
+            )
+            for server in possible_servers:
+                if server["hostname"] == params["hostname"]:
+                    resource = server
 
-    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
-        status, resp = self._api_client.send_request(
-            "GET", f"servers/{resource_id}", self.timeout
-        )
-        if status not in (200, 404):
-            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
-        if status == 200:
-            return resp
-        return None
+        return resource
 
-    @property
-    def name(self) -> str:
-        """TODO"""
-        return "cherryservers_server"
+    def _perform_deletion(self, resource: dict):
+        self._server_manager.delete_server(resource["id"])
 
-    def _create(self):
+    def _get_update_requests(self, resource: dict) -> dict:
+        params = self._module.params
+        req = {}
+        basic_req = {}
+        reinstall_req = {}
+
+        for k in ("hostname", "tags"):
+            if params[k] is not None and params[k] != resource[k]:
+                basic_req[k] = params[k]
+
+        if basic_req:
+            req["basic"] = basic_req
+
+        for k in ("user_data", "os_partition_size"):
+            if params[k] is not None:
+                reinstall_req[k] = params[k]
+
+        if params["ssh_keys"] is not None:
+            params["ssh_keys"].sort()
+        if resource["ssh_keys"] is not None:
+            resource["ssh_keys"].sort()
+
+        for k in ("image", "ssh_keys"):
+            if params[k] is not None and params[k] != resource[k]:
+                reinstall_req[k] = params[k]
+
+        if reinstall_req:
+            reinstall_req["password"] = common.generate_password(16)
+            reinstall_req["type"] = "reinstall"
+            req["reinstall"] = reinstall_req
+
+        return req
+
+    def _perform_update(self, requests: dict, resource: dict) -> dict:
+        params = self._module.params
+        if requests.get("reinstall", None):
+            self._server_manager.reinstall_server(
+                resource["id"],
+                requests["reinstall"],
+            )
+            if params["state"] == "active":
+                self._server_manager.wait_for_active(resource, params["active_timeout"])
+
+        if requests.get("basic", None):
+            self._server_manager.update_server(resource["id"], requests["basic"])
+
+        return self._server_manager.get_by_id(resource["id"])
+
+    def _validate_creation_params(self):
         params = self._module.params
 
         if any(params[k] is None for k in ("project_id", "region", "plan")):
@@ -335,14 +391,12 @@ class ServerModule(base_module.BaseModule):
             except binascii.Error as e:
                 self._module.fail_json(msg=f"invalid user_data string: {e}")
 
-        if self._module.check_mode:
-            self._module.exit_json(changed=True)
+    def _perform_creation(self) -> dict:
+        params = self._module.params
 
-        status, resp = self._api_client.send_request(
-            "POST",
-            f"projects/{params.get('project_id')}/servers",
-            self.timeout,
-            **{
+        server = self._server_manager.create_server(
+            project_id=self._module.params["project_id"],
+            params={
                 "plan": params["plan"],
                 "image": params["image"],
                 "os_partition_size": params["os_partition_size"],
@@ -357,161 +411,22 @@ class ServerModule(base_module.BaseModule):
             },
         )
 
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to create {self.name}: {resp}"
+        if params["state"] == "active":
+            server = self._server_manager.wait_for_active(
+                server, params["active_timeout"]
             )
 
-        self.resource = resp
+        return self._server_manager.get_by_id(server["id"])
 
-        if self._module.params["state"] == "active":
-            self._wait_for_active()
+    @property
+    def name(self) -> str:
+        """Cherry Servers server module name."""
+        return "cherryservers_server"
 
-        self._exit_with_return()
+    @property
+    def _arg_spec(self) -> dict:
 
-    def _wait_for_active(self):
-        """Wait for server to become active."""
-        time_passed = 0
-
-        while self.resource["status"] != "deployed":
-            self.resource = self._read_by_id(self.resource["id"])
-
-            time.sleep(10)
-            time_passed += 10
-
-            if time_passed >= self._module.params["active_timeout"]:
-                self._module.fail_json(
-                    msg=f"timed out waiting for {self.name} to become active"
-                )
-
-    def _update(self):
-        basic_req, basic_changed = self._get_basic_server_update_request()
-        rebuild_req, rebuild_changed = self._get_reinstall_server_update_request()
-        changed = basic_changed or rebuild_changed
-
-        self._exit_if_no_change_for_update(changed)
-
-        if rebuild_changed:
-            if self._module.params["allow_reinstall"]:
-                self._reinstall_server(rebuild_req)
-            else:
-                self._module.fail_json(
-                    msg="the options you've selected require server reinstalling."
-                )
-
-        if basic_changed:
-            status, resp = self._api_client.send_request(
-                "PUT", f"servers/{self.resource['id']}", self.timeout, **basic_req
-            )
-            if status != 201:
-                self._module.fail_json(
-                    msg=f"error {status}, failed to update {self.name}: {resp}"
-                )
-            self.resource = resp
-
-        self._exit_with_return()
-
-    def _get_basic_server_update_request(self) -> Tuple[dict, bool]:
-        """Get Cherry Servers server update API request.
-
-        Check for differences between current server state and module options
-        and add the options that have diverged to the update request.
-
-        Returns:
-            Tuple[dict, bool]: A dictionary with the request parameters
-            and a boolean indicating whether there is any difference between the server state
-            and module options.
-        """
-        params = self._module.params
-        req = {}
-        changed = False
-
-        for k in ("hostname", "tags"):
-            if params[k] is not None and params[k] != self.resource[k]:
-                req[k] = params[k]
-                changed = True
-
-        return req, changed
-
-    def _get_reinstall_server_update_request(self) -> Tuple[dict, bool]:
-        """Get Cherry Servers server re-install API request.
-
-        Check for differences between current server state and module options
-        and add the options that have diverged to the re-installation request.
-        Options 'user_data' and 'os_partition_size' are not tracked in server state,
-        so any provided option will be considered different from state.
-
-        Returns:
-            Tuple[dict, bool]: A dictionary with the request parameters
-            and a boolean indicating whether there is any difference between the server state
-            and module options.
-        """
-        req = {}
-        changed = False
-        params = self._module.params
-
-        for k in ("user_data", "os_partition_size"):
-            if params[k] is not None:
-                req[k] = params[k]
-                changed = True
-
-        if params["ssh_keys"] is not None:
-            params["ssh_keys"].sort()
-        if self.resource["ssh_keys"] is not None:
-            self.resource["ssh_keys"].sort()
-
-        for k in ("image", "ssh_keys"):
-            if params[k] is not None and params[k] != self.resource[k]:
-                req[k] = params[k]
-                changed = True
-        req["password"] = common.generate_password(16)
-        req["type"] = "reinstall"
-
-        return req, changed
-
-    def _reinstall_server(
-        self,
-        reinstall_req: dict,
-    ):
-        """Re-install Cherry Servers server.
-
-        If re-installation fails, fail the self._module.
-        """
-        status, resp = self._api_client.send_request(
-            "POST",
-            f"servers/{self.resource['id']}/actions",
-            self.timeout,
-            **reinstall_req,
-        )
-        if status not in (201, 202):
-            self._module.fail_json(
-                msg=f"error {status}, failed to reinstall {self.name}: {resp}"
-            )
-
-        self.resource = resp
-
-        if self._module.params["state"] == "active":
-            self._wait_for_active()
-
-    def _delete(self):
-        self._exit_if_no_change_for_delete()
-        status, resp = self._api_client.send_request(
-            "DELETE", f"servers/{self.resource['id']}", self.timeout
-        )
-        if status != 204:
-            self._module.fail_json(
-                f"error {status}, failed to delete {self.name}: {resp}"
-            )
-
-        self._module.exit_json(changed=True)
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+        return {
             "state": {
                 "choices": ["present", "active", "absent"],
                 "default": "active",
@@ -535,28 +450,17 @@ def get_module_args() -> dict:
             "active_timeout": {"type": "int", "default": 1800},
             "allow_reinstall": {"type": "bool", "default": False},
         }
-    )
 
-    return module_args
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+        )
 
 
 def main():
     """Main function."""
-    module_args = get_module_args()
-
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
-
-    api_client = client.CherryServersClient(module)
-
-    server_module = ServerModule(module, api_client)
-
-    server_module.run()
+    ServerModule().run()
 
 
 if __name__ == "__main__":

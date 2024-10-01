@@ -6,6 +6,8 @@ server_plan: "cloud_vps_1"
 server_update_hostname: "ansible-server-update-test"
 server_update_tags:
   env: "ansible-server-update-test"
+server_update_by_hostname_tags:
+  env: "ansible-server-update-test-by-hostname"
 
 # For full config server test.
 server_image: "fedora_39_64bit"

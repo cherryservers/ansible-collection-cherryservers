@@ -14,7 +14,7 @@ class SSHKeyManager(ResourceManager):
     @property
     def name(self) -> str:
         """TODO"""
-        return "ssh-key"
+        return "ssh key"
 
     def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_ssh_key(resource)
