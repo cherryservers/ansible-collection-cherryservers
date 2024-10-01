@@ -195,7 +195,7 @@ cherryservers_servers:
         env: "dev"
 """
 
-from typing import List, Optional
+from typing import List
 from ansible.module_utils import basic as utils
 from ..module_utils import info_module
 from ..module_utils.resource_managers import server_manager
@@ -234,7 +234,7 @@ class ServerInfoModule(info_module.InfoModule):
             return True
         return False
 
-    def _get_single_resource(self) -> Optional[dict]:
+    def _get_single_resource(self) -> dict:
         return self._resource_manager.get_by_id(self._module.params["id"])
 
     def _get_resource_list(self) -> List[dict]:

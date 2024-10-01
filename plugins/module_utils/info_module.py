@@ -2,7 +2,7 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 """TODO"""
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List
 
 from . import module
 
@@ -19,7 +19,7 @@ class InfoModule(module.Module, ABC):
         pass
 
     @abstractmethod
-    def _get_single_resource(self) -> Optional[dict]:
+    def _get_single_resource(self) -> dict:
         pass
 
     @abstractmethod
@@ -30,9 +30,7 @@ class InfoModule(module.Module, ABC):
         """TODO"""
         resources = []
         if self._resource_uniquely_identifiable():
-            resource = self._get_single_resource()
-            if resource:
-                resources.append(resource)
+            resources.append(self._get_single_resource())
         else:
             resources = self._get_resource_list()
 
