@@ -1,8 +1,9 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 """TODO"""
+from typing import Any, Optional
 
-from .resource_manager import RequestTemplate, ResourceManager
+from .resource_manager import RequestTemplate, ResourceManager, Request, Method
 from .. import normalizers
 
 
@@ -37,10 +38,51 @@ class SSHKeyManager(ResourceManager):
 
     def get_all(self):
         """TODO"""
-        status, resp = self.api_client.send_request("GET", "ssh-keys", self.GET_TIMEOUT)
-        if status != 200:
-            self.module.fail_json(msg=self._build_api_error_msg("get", status, resp))
-        normalized_resources = []
-        for resource in resp:
-            normalized_resources.append(self._normalize(resource))
-        return normalized_resources
+        return self.perform_request(Request(
+            url="ssh-keys",
+            method=Method.GET,
+            timeout=self.GET_TIMEOUT,
+            valid_status_codes=(200,),
+            params=None
+        ))
+
+    def get_by_id(self, key_id: int) -> Optional[dict]:
+        """TODO"""
+        return self.perform_request(Request(
+            url=f"ssh-keys/{key_id}",
+            method=Method.GET,
+            timeout=self.GET_TIMEOUT,
+            valid_status_codes=(200,),
+            params=None
+        ))
+
+    def create(self, params: dict, timeout: int = 15):
+        """TODO"""
+        return self.perform_request(Request(
+            url="ssh-keys",
+            method=Method.POST,
+            timeout=timeout,
+            valid_status_codes=(201,),
+            params=params,
+        ))
+
+    def update(self, key_id: int, params: dict, timeout: int = 15):
+        """TODO"""
+        return self.perform_request(Request(
+            url=f"ssh-keys/{key_id}",
+            method=Method.PUT,
+            timeout=timeout,
+            valid_status_codes=(201,),
+            params=params,
+        ))
+
+    def delete(self, key_id: int, timeout: int = 15):
+        """TODO"""
+        return self.perform_request(Request(
+            url=f"ssh-keys/{key_id}",
+            method=Method.DELETE,
+            timeout=timeout,
+            valid_status_codes=(204,),
+            params=None
+        ))
+

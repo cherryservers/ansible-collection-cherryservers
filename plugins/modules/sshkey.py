@@ -121,126 +121,72 @@ cherryservers_sshkey:
 """
 
 from ansible.module_utils import basic as utils
-from typing import Any, Optional, Tuple
-from ..module_utils import client, common, normalizers, base_module
+from typing import Optional
+from ..module_utils import standard_module
+from ..module_utils.resource_managers import sshkey_manager
 
 
-class SSHKeyModule(base_module.BaseModule):
+class SSHKeyModule(standard_module.StandardModule):
     """TODO"""
 
-    timeout = 10
+    def __init__(self):
+        super().__init__()
+        self._sshkey_manager = sshkey_manager.SSHKeyManager(self._module)
 
-    @property
-    def name(self) -> str:
-        """TODO"""
-        return "cherryservers_sshkey"
-
-    def _load_resource(self):
-        """TODO"""
-        status, resp = self._api_client.send_request("GET", "ssh-keys", self.timeout)
-        if status != 200:
-            self._module.fail_json(
-                msg=f"error {status}, failed to get {self.name}: {resp}"
-            )
+    def _get_resource(self) -> Optional[dict]:
+        keys = self._sshkey_manager.get_all()
 
         current_key = None
-        for key in resp:
+        for key in keys:
             if any(
-                self._module.params[k] is not None and self._module.params[k] == key[k]
-                for k in ("fingerprint", "id", "label", "key")
+                    self._module.params[k] is not None and self._module.params[k] == key[k]
+                    for k in ("fingerprint", "id", "label", "key")
             ):
                 if current_key is not None:
                     self._module.fail_json(msg="error, multiple matching keys found")
                 current_key = key
 
-        self.resource = current_key
+        return current_key
 
-    def _normalize(self, resource: dict) -> dict:
-        return normalizers.normalize_ssh_key(resource)
+    def _perform_deletion(self, resource: dict):
+        self._sshkey_manager.delete(resource["id"])
 
-    def _update(self):
-        req, changed = self._get_update_request()
+    def _perform_update(self, requests: dict, resource: dict) -> dict:
+        if requests.get("update", None):
+            self._sshkey_manager.update(resource["id"], requests["update"])
 
-        self._exit_if_no_change_for_update(changed)
+        return self._sshkey_manager.get_by_id(resource["id"])
 
-        status, resp = self._api_client.send_request(
-            "PUT", f"ssh-keys/{self.resource['id']}", self.timeout, **req
-        )
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to update {self.name}: {resp}"
-            )
-
-        self.resource = resp
-        self._exit_with_return()
-
-    def _delete(self):
-        self._exit_if_no_change_for_delete()
-
-        status, resp = self._api_client.send_request(
-            "DELETE", f"ssh-keys/{self.resource['id']}", self.timeout
-        )
-        if status != 204:
-            self._module.fail_json(
-                msg=f"error {status}, failed to delete {self.name}: {resp}"
-            )
-
-        self._module.exit_json(changed=True)
-
-    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
-        status, resp = self._api_client.send_request(
-            "GET",
-            f"ssh-keys/{resource_id}",
-            self.timeout,
-        )
-        if status not in (200, 404):
-            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
-        if status == 200:
-            return resp
-        return None
-
-    def _create(self):
+    def _validate_creation_params(self):
         if self._module.params["label"] is None or self._module.params["key"] is None:
             self._module.fail_json("label and key are required for creating SSH keys.")
 
-        if self._module.check_mode:
-            self._module.exit_json(changed=True)
-
-        status, resp = self._api_client.send_request(
-            "POST",
-            "ssh-keys",
-            self.timeout,
-            label=self._module.params["label"],
-            key=self._module.params["key"],
-        )
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to create {self.name}: {resp}"
-            )
-
-        self.resource = resp
-        self._exit_with_return()
-
-    def _get_update_request(self) -> Tuple[dict, bool]:
-        """Generate the necessary update request data fields."""
+    def _get_update_requests(self, resource: dict) -> dict:
         req = {}
-        changed = False
         params = self._module.params
 
         for k in ("label", "key"):
-            if params[k] is not None and params[k] != self.resource[k]:
-                changed = True
+            if params[k] is not None and params[k] != resource[k]:
                 req[k] = params[k]
 
-        return req, changed
+        return {"update": req}
 
+    def _perform_creation(self) -> dict:
+        key = self._sshkey_manager.create(params={
+            "label": self._module.params["label"],
+            "key": self._module.params["key"]
+        })
 
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
+        return self._sshkey_manager.get_by_id(key["id"])
 
-    module_args.update(
-        {
+    @property
+    def name(self) -> str:
+        """Cherry Servers SSH key module name."""
+        return "cherryservers_sshkey"
+
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "state": {
                 "choices": ["absent", "present"],
                 "default": "present",
@@ -256,23 +202,17 @@ def get_module_args() -> dict:
             "id": {"type": "int"},
             "fingerprint": {"type": "str"},
         }
-    )
 
-    return module_args
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+        )
 
 
 def main():
     """Main function."""
-    module_args = get_module_args()
-
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-    )
-
-    api_client = client.CherryServersClient(module)
-    ssh_key_module = SSHKeyModule(module, api_client)
-    ssh_key_module.run()
+    SSHKeyModule().run()
 
 
 if __name__ == "__main__":

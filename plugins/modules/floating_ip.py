@@ -189,8 +189,8 @@ class FloatingIPModule(standard_module.StandardModule):
         return None
 
     def _perform_deletion(self, resource: dict):
-        if resource["state"] == "attached":
-            self._fip_manager.update(resource["id"], {"target_server_id": 0})
+        if resource["target_server_id"]:
+            self._fip_manager.update(resource["id"], {"targeted_to": 0})
 
         self._fip_manager.delete(resource["id"])
 
