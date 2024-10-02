@@ -170,177 +170,119 @@ cherryservers_floating_ip:
       sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
 """
 
-from typing import Optional, Tuple, Any
+from typing import Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import client, common, normalizers, base_module
+from ..module_utils import standard_module
+from ..module_utils.resource_managers import floating_ip_manager
 
 
-class FloatingIPModule(base_module.BaseModule):
+class FloatingIPModule(standard_module.StandardModule):
     """TODO"""
 
-    timeout = 30
+    def __init__(self):
+        super().__init__()
+        self._fip_manager = floating_ip_manager.FloatingIPManager(self._module)
 
-    @property
-    def name(self) -> str:
-        """TODO"""
-        return "cherryservers_floating_ip"
+    def _get_resource(self) -> Optional[dict]:
+        if self._module.params["id"]:
+            return self._fip_manager.get_by_id(self._module.params["id"])
+        return None
 
-    def _normalize(self, resource: dict) -> dict:
-        return normalizers.normalize_fip(resource)
+    def _perform_deletion(self, resource: dict):
+        if resource["state"] == "attached":
+            self._fip_manager.update(resource["id"], {"target_server_id": 0})
 
-    def _create(self):
+        self._fip_manager.delete(resource["id"])
+
+    def _get_update_requests(self, resource: dict) -> dict:
+        req = {}
         params = self._module.params
 
-        if params["project_id"] is None or params["region"] is None:
+        ptr_org, a_org, target_server_id_org = (
+            resource["ptr_record"],
+            resource["a_record"],
+            resource["target_server_id"],
+        )
+
+        # prepare for comparison
+        if resource["ptr_record"] is not None and resource["ptr_record"][-1] == ".":
+            resource["ptr_record"] = resource["ptr_record"][:-1]
+        else:
+            resource["ptr_record"] = ""
+
+        if resource["a_record"] is not None:
+            resource["a_record"] = resource["a_record"].split(
+                ".cloud.cherryservers.net"
+            )[0]
+        else:
+            resource["a_record"] = ""
+
+        if resource["target_server_id"] is None:
+            resource["target_server_id"] = 0
+
+        for k in ("ptr_record", "a_record", "tags"):
+            if params[k] is not None and params[k] != resource[k]:
+                req[k] = params[k]
+
+        if (
+            params["route_ip_id"] is not None
+            and params["route_ip_id"] != resource["route_ip_id"]
+        ):
+            req["routed_to"] = params["route_ip_id"]
+
+        if (
+            params["target_server_id"] is not None
+            and params["target_server_id"] != resource["target_server_id"]
+        ):
+            req["targeted_to"] = params["target_server_id"]
+
+        resource["ptr_record"] = ptr_org
+        resource["a_record"] = a_org
+        resource["target_server_id"] = target_server_id_org
+
+        return {"update": req}
+
+    def _perform_update(self, requests: dict, resource: dict) -> dict:
+        if requests.get("update", None):
+            self._fip_manager.update(resource["id"], requests["update"])
+
+        return self._fip_manager.get_by_id(resource["id"])
+
+    def _perform_creation(self) -> dict:
+        params = self._module.params
+
+        fip = self._fip_manager.create(
+            project_id=params["project_id"],
+            params={
+                "region": params["region"],
+                "routed_to": params["route_ip_id"],
+                "targeted_to": params["target_server_id"],
+                "ptr_record": params["ptr_record"],
+                "a_record": params["a_record"],
+                "ddos_scrubbing": params["ddos_scrubbing"],
+                "tags": params["tags"],
+            },
+        )
+
+        return self._fip_manager.get_by_id(fip["id"])
+
+    def _validate_creation_params(self):
+        if (
+            self._module.params["project_id"] is None
+            or self._module.params["region"] is None
+        ):
             self._module.fail_json(
                 "project_id and region are required for creating floating ips"
             )
 
-        if self._module.check_mode:
-            self._module.exit_json(changed=True)
+    @property
+    def name(self) -> str:
+        """Cherry Servers floating IP module name."""
+        return "cherryservers_floating_ip"
 
-        status, resp = self._api_client.send_request(
-            "POST",
-            f"projects/{params['project_id']}/ips",
-            self.timeout,
-            region=params["region"],
-            routed_to=params["route_ip_id"],
-            targeted_to=params["target_server_id"],
-            ptr_record=params["ptr_record"],
-            a_record=params["a_record"],
-            ddos_scrubbing=params["ddos_scrubbing"],
-            tags=params["tags"],
-        )
-
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to create {self.name}: {resp}"
-            )
-
-        self.resource = resp
-        self._exit_with_return()
-
-    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
-        status, resp = self._api_client.send_request(
-            "GET",
-            f"ips/{resource_id}",
-            self.timeout,
-        )
-        #  Code 403 can also be returned for a deleted resource, if enough time hasn't passed.
-        if status not in (200, 403, 404):
-            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
-        if status == 200:
-            return resp
-        return None
-
-    def _update(self):
-        req, changed = self._get_update_request()
-
-        self._exit_if_no_change_for_update(changed)
-
-        status, resp = self._api_client.send_request(
-            "PUT", f"ips/{self._resource['id']}", self.timeout, **req
-        )
-        if status != 200:
-            self._module.fail_json(
-                msg=f"error {status}, failed to update {self.name}: {resp}"
-            )
-
-        self.resource = resp
-        self._exit_with_return()
-
-    def _get_update_request(self) -> Tuple[dict, bool]:
-        """Generate the necessary update request data fields."""
-        req = {}
-        changed = False
-        params = self._module.params
-
-        ptr_org, a_org, target_server_id_org = (
-            self.resource["ptr_record"],
-            self.resource["a_record"],
-            self.resource["target_server_id"],
-        )
-
-        # prepare for comparison
-        if (
-            self.resource["ptr_record"] is not None
-            and self.resource["ptr_record"][-1] == "."
-        ):
-            self.resource["ptr_record"] = self.resource["ptr_record"][:-1]
-        else:
-            self.resource["ptr_record"] = ""
-
-        if self.resource["a_record"] is not None:
-            self.resource["a_record"] = self.resource["a_record"].split(
-                ".cloud.cherryservers.net"
-            )[0]
-        else:
-            self.resource["a_record"] = ""
-
-        if self.resource["target_server_id"] is None:
-            self.resource["target_server_id"] = 0
-
-        for k in ("ptr_record", "a_record", "tags"):
-            if params[k] is not None and params[k] != self.resource[k]:
-                req[k] = params[k]
-                changed = True
-
-        if (
-            params["route_ip_id"] is not None
-            and params["route_ip_id"] != self.resource["route_ip_id"]
-        ):
-            req["routed_to"] = params["route_ip_id"]
-            changed = True
-
-        if (
-            params["target_server_id"] is not None
-            and params["target_server_id"] != self.resource["target_server_id"]
-        ):
-            req["targeted_to"] = params["target_server_id"]
-            changed = True
-
-        self.resource["ptr_record"] = ptr_org
-        self.resource["a_record"] = a_org
-        self.resource["target_server_id"] = target_server_id_org
-
-        return req, changed
-
-    def _delete(self):
-        self._exit_if_no_change_for_delete()
-
-        if self._resource["target_server_id"]:
-            self._untarget_fip()
-
-        status, resp = self._api_client.send_request(
-            "DELETE", f"ips/{self.resource['id']}", self.timeout
-        )
-        if status != 204:
-            self._module.fail_json(
-                msg=f"error {status}, failed to delete {self.name}: {resp}"
-            )
-
-        self._module.exit_json(changed=True)
-
-    def _untarget_fip(self):
-        """Set floating IP target server ID to 0."""
-        status, resp = self._api_client.send_request(
-            "PUT",
-            f"ips/{self._resource['id']}",
-            self.timeout,
-            targeted_to=0,
-        )
-        if status != 200:
-            self._module.fail_json(
-                msg=f"error {status}, failed to untarget {self.name}: {resp}"
-            )
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "state": {
                 "choices": ["absent", "present"],
                 "default": "present",
@@ -358,27 +300,21 @@ def get_module_args() -> dict:
                 "type": "dict",
             },
         }
-    )
 
-    return module_args
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+            mutually_exclusive=[["route_ip_id", "target_server_id"]],
+            required_if=[
+                ("state", "absent", ["id"], True),
+            ],
+        )
 
 
 def main():
     """Main function."""
-    module_args = get_module_args()
-
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        mutually_exclusive=[["route_ip_id", "target_server_id"]],
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
-
-    api_client = client.CherryServersClient(module)
-    fip_module = FloatingIPModule(module, api_client)
-    fip_module.run()
+    FloatingIPModule().run()
 
 
 if __name__ == "__main__":
