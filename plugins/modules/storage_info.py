@@ -143,7 +143,7 @@ cherryservers_storages:
       sample: "detached"
 """
 
-from typing import List
+from typing import List, Optional
 from ansible.module_utils import basic as utils
 from ..module_utils import info_module
 from ..module_utils.resource_managers.storage_manager import StorageManager
@@ -170,7 +170,7 @@ class StorageInfoModule(info_module.InfoModule):
             self._module.params["project_id"]
         )
 
-    def _get_single_resource(self) -> dict:
+    def _get_single_resource(self) -> Optional[dict]:
         return self._resource_manager.get_by_id(self._module.params["id"])
 
     def _resource_uniquely_identifiable(self) -> bool:

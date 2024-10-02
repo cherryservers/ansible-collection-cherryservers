@@ -23,7 +23,7 @@ class StorageManager(ResourceManager):
         return RequestTemplate(
             url_template="storages/{id}",
             timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200,)
+            valid_status_codes=(200, 404)
         )
 
     @property

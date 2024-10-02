@@ -7,7 +7,7 @@ Classes:
 
 """
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from . import module
 
@@ -35,15 +35,16 @@ class InfoModule(module.Module, ABC):
         """Check if the module has unique identifiers provided.
 
         Returns:
-            bool: True if the module has arguments that can uniquely identify a resource. False otherwise.
+            bool: True if the module has arguments that can uniquely identify a resource.
+        False otherwise.
         """
 
     @abstractmethod
-    def _get_single_resource(self) -> dict:
+    def _get_single_resource(self) -> Optional[dict]:
         """Get a single resource, typically by its ID.
 
         Returns:
-            dict: Normalized Cherry Servers resource.
+            Optional[dict]: Normalized Cherry Servers resource. None if resource doesn't exist.
         """
 
     @abstractmethod
@@ -58,7 +59,9 @@ class InfoModule(module.Module, ABC):
         """Default execution logic for the info module."""
         resources = []
         if self._resource_uniquely_identifiable():
-            resources.append(self._get_single_resource())
+            resource = self._get_single_resource()
+            if resource:
+                resources.append(resource)
         else:
             resources = self._get_resource_list()
 

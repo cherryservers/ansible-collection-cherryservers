@@ -25,7 +25,7 @@ class StandardModule(module.Module, ABC):
             if self._module.check_mode:
                 self._module.exit_json(changed=True)
         else:
-            self._module.fail_json(msg="absent state for unidentifiable resource")
+            self._module.exit_json(changed=False)
         self._perform_deletion(resource)
         self._module.exit_json(changed=True)
 

@@ -80,11 +80,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "1234"
       register: result
-      ignore_errors: true
     - name: verify gather server by id wrong
       ansible.builtin.assert:
         that:
-          - result is failed
+          - result.cherryservers_servers | list | count == 0
+          - result is not changed
 
     - name: test gather server by hostname
       local.cherryservers.server_info:

@@ -19,6 +19,7 @@ version_added: "0.1.0"
 description:
     - Create, update and delete servers on Cherry Servers.
     - To update existing servers, you must use O(id) or a combination of O(project_id) and O(hostname) to identify them.
+    - When both are provided, O(id) will take priority over O(hostname).
 
 options:
     state:
@@ -307,7 +308,7 @@ from ..module_utils.resource_managers.server_manager import ServerManager
 
 
 class ServerModule(standard_module.StandardModule):
-    """TODO"""
+    """Cherry Servers module for managing the server resource."""
 
     def __init__(self):
         super().__init__()
@@ -367,6 +368,8 @@ class ServerModule(standard_module.StandardModule):
     def _perform_update(self, requests: dict, resource: dict) -> dict:
         params = self._module.params
         if requests.get("reinstall", None):
+            if not params["allow_reinstall"]:
+                self._module.fail_json(msg="provided options require server reinstall")
             self._server_manager.reinstall_server(
                 resource["id"],
                 requests["reinstall"],
@@ -455,6 +458,10 @@ class ServerModule(standard_module.StandardModule):
         return utils.AnsibleModule(
             argument_spec=arg_spec,
             supports_check_mode=True,
+            required_if=[
+                ("state", "absent", ("id", "hostname"), True),
+                ("state", "absent", ("id", "project_id"), True),
+            ],
         )
 
 

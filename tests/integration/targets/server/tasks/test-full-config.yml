@@ -12,6 +12,19 @@
         that:
           - sshkey is changed
 
+    - name: create storage for server testing
+      local.cherryservers.storage:
+        size: 1
+        region: "{{ server_region }}"
+        project_id: "{{ cherryservers_project_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: "detached"
+      register: storage
+    - name: verify create storage for server testing
+      ansible.builtin.assert:
+        that:
+          storage is changed
+
     - name: test create server with check mode
       local.cherryservers.server:
         auth_token: "{{ cherryservers_api_key }}"
@@ -23,7 +36,8 @@
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        storage_id: "{{ storage.cherryservers_storage.id }}"
       register: server
       check_mode: true
     - name: verify create server with check mode
@@ -54,7 +68,8 @@
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        storage_id: "{{ storage.cherryservers_storage.id }}"
       register: server
     - name: verify create server
       ansible.builtin.assert:
@@ -77,6 +92,7 @@
           - result.cherryservers_servers[0].hostname == server_hostname
           - result.cherryservers_servers[0].tags == server_tags
           - result.cherryservers_servers[0].ssh_keys[0] == sshkey.cherryservers_sshkey.id
+          - result.cherryservers_servers[0].storage_id == storage.cherryservers_storage.id
 
     - name: test server creation idempotency with check mode
       local.cherryservers.server:
@@ -87,7 +103,7 @@
         hostname: "{{ server_hostname }}"
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_image }}"
       register: result
       check_mode: true
@@ -105,7 +121,7 @@
         hostname: "{{ server_hostname }}"
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_image }}"
       register: result
     - name: verify server creation idempotency
@@ -135,7 +151,7 @@
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         user_data: "{{ server_user_data }}"
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
@@ -166,7 +182,7 @@
         hostname: "{{ server_hostname }}"
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         user_data: "{{ server_user_data }}"
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
@@ -196,7 +212,7 @@
       local.cherryservers.server:
         project_id: "{{ cherryservers_project_id }}"
         auth_token: "{{ cherryservers_api_key }}"
-        hostname: "{{ server_update_hostname }}"
+        hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_reinstall_image }}"
@@ -233,5 +249,10 @@
     - name: delete ssh key
       local.cherryservers.sshkey:
         id: "{{ sshkey.cherryservers_sshkey.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+    - name: delete storage
+      local.cherryservers.storage:
+        id: "{{ storage.cherryservers_storage.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

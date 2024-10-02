@@ -139,7 +139,7 @@ cherryservers_floating_ips:
       sample: 123456
 """
 
-from typing import List
+from typing import List, Optional
 from ansible.module_utils import basic as utils
 from ..module_utils.resource_managers import floating_ip_manager
 from ..module_utils import info_module
@@ -173,7 +173,7 @@ class FloatingIPModule(info_module.InfoModule):
             return False
         return True
 
-    def _get_single_resource(self) -> dict:
+    def _get_single_resource(self) -> Optional[dict]:
         return self._resource_manager.get_by_id(self._module.params.get("id"))
 
     def _get_resource_list(self) -> List[dict]:

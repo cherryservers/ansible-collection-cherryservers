@@ -3,7 +3,7 @@
 """TODO"""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Sequence, Any, List
+from typing import Sequence, Any, List, Optional
 
 from ansible.module_utils import basic as utils
 from .. import client
@@ -53,7 +53,7 @@ class ResourceManager(ABC):
             f"error {status_code} on attempt to {operation} for {self.name}: {response}"
         )
 
-    def get_by_id(self, resource_id: Any) -> dict:
+    def get_by_id(self, resource_id: Any) -> Optional[dict]:
         """TODO"""
         status, resp = self.api_client.send_request(
             "GET",
@@ -62,7 +62,9 @@ class ResourceManager(ABC):
         )
         if status not in self._get_by_id_request.valid_status_codes:
             self.module.fail_json(msg=self._build_api_error_msg("GET", status, resp))
-        return self._normalize(resp)
+        if status == 200:
+            return self._normalize(resp)
+        return None
 
     def get_by_project_id(self, project_id: int) -> List[dict]:
         """TODO"""

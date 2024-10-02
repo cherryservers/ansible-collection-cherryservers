@@ -23,7 +23,7 @@ class FloatingIPManager(ResourceManager):
         return RequestTemplate(
             url_template="ips/{id}",
             timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200,)
+            valid_status_codes=(200, 404, 403)
         )
 
     @property
