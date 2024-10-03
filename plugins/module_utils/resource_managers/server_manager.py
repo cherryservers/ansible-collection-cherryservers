@@ -2,9 +2,10 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 """TODO"""
 import time
+from typing import Optional, List
 
 from .. import normalizers
-from .resource_manager import ResourceManager, RequestTemplate
+from .resource_manager import ResourceManager, Request, Method
 
 
 class ServerManager(ResourceManager):
@@ -20,55 +21,79 @@ class ServerManager(ResourceManager):
     def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_server(resource)
 
-    @property
-    def _get_by_id_request(self) -> RequestTemplate:
-        return RequestTemplate(
-            url_template="servers/{id}",
-            timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200, 404),
+    def get_by_id(self, server_id: int) -> Optional[dict]:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                method=Method.GET,
+                url=f"servers/{server_id}",
+                valid_status_codes=(200, 404),
+                timeout=self.GET_TIMEOUT,
+                params=None,
+            )
         )
 
-    @property
-    def _get_by_project_id_request(self) -> RequestTemplate:
-        return RequestTemplate(
-            url_template="projects/{project_id}/servers",
-            timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200,),
+    def get_by_project_id(self, project_id: int) -> List[dict]:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                method=Method.GET,
+                url=f"projects/{project_id}/servers",
+                valid_status_codes=(200,),
+                timeout=self.GET_TIMEOUT,
+                params=None,
+            )
         )
 
     def create_server(self, project_id: int, params: dict, timeout: int = 1800) -> dict:
         """TODO"""
-        req_template = RequestTemplate(
-            url_template="projects/{id}/servers",
-            timeout=timeout,
-            valid_status_codes=(201,),
+        return self.perform_request(
+            Request(
+                method=Method.POST,
+                url=f"projects/{project_id}/servers",
+                valid_status_codes=(201,),
+                timeout=timeout,
+                params=params,
+            )
         )
-        return self.post_by_id(project_id, req_template, params)
 
     def update_server(self, server_id: int, params: dict, timeout: int = 180) -> dict:
         """TODO"""
-        req_template = RequestTemplate(
-            url_template="servers/{id}", timeout=timeout, valid_status_codes=(201,)
+        return self.perform_request(
+            Request(
+                method=Method.PUT,
+                url=f"servers/{server_id}",
+                valid_status_codes=(201,),
+                timeout=timeout,
+                params=params,
+            )
         )
-        return self.put_by_id(server_id, req_template, params)
 
     def reinstall_server(
-            self, server_id: int, params: dict, timeout: int = 1800
+        self, server_id: int, params: dict, timeout: int = 1800
     ) -> dict:
         """TODO"""
-        req_template = RequestTemplate(
-            url_template="servers/{id}/actions",
-            timeout=timeout,
-            valid_status_codes=(201, 202),
+        return self.perform_request(
+            Request(
+                method=Method.POST,
+                url=f"servers/{server_id}/actions",
+                valid_status_codes=(201, 202),
+                timeout=timeout,
+                params=params,
+            )
         )
-        return self.post_by_id(server_id, req_template, params)
 
     def delete_server(self, server_id: int, timeout: int = 30):
         """TODO"""
-        req_template = RequestTemplate(
-            url_template="servers/{id}", timeout=timeout, valid_status_codes=(204,)
+        self.perform_request(
+            Request(
+                method=Method.DELETE,
+                url=f"servers/{server_id}",
+                timeout=timeout,
+                params=None,
+                valid_status_codes=(204,),
+            )
         )
-        self.delete_by_id(server_id, req_template)
 
     def wait_for_active(self, server: dict, timeout: int = 1800) -> dict:
         """TODO"""

@@ -3,9 +3,8 @@
 """TODO"""
 from typing import Optional, List
 
-from .resource_manager import ResourceManager, RequestTemplate, Request, Method
+from .resource_manager import ResourceManager, Request, Method
 from .. import normalizers
-
 
 
 class FloatingIPManager(ResourceManager):
@@ -18,28 +17,10 @@ class FloatingIPManager(ResourceManager):
         """TODO"""
         return "floating ip"
 
-    def _normalize(self,resource: dict) -> dict:
+    def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_fip(resource)
 
-    @property
-    def _get_by_id_request(self) -> RequestTemplate:
-        return RequestTemplate(
-            url_template="ips/{id}",
-            timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200, 404, 403),
-        )
-
-    @property
-    def _get_by_project_id_request(self) -> RequestTemplate:
-        return RequestTemplate(
-            url_template="projects/{project_id}/ips",
-            timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200,),
-        )
-
-    def create(
-        self, project_id: int, params: dict, timeout: int = 30
-    ) -> dict:
+    def create(self, project_id: int, params: dict, timeout: int = 30) -> dict:
         """TODO"""
         return self.perform_request(
             Request(
