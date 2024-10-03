@@ -192,7 +192,9 @@ class FloatingIPModule(standard_module.StandardModule):
         if self._module.params["id"]:
             ip = self._fip_manager.get_by_id(self._module.params["id"])
             if ip["type"] != "floating-ip":
-                self._module.fail_json(msg=f"Unexpected type {ip['type']}, should be floating-ip")
+                self._module.fail_json(
+                    msg=f"Unexpected type {ip['type']}, should be floating-ip"
+                )
             return ip
         return None
 
