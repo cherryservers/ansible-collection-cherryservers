@@ -12,19 +12,6 @@
         that:
           - sshkey is changed
 
-    - name: create storage for server testing
-      cherryservers.cloud.storage:
-        size: 1
-        region: "{{ server_region }}"
-        project_id: "{{ cherryservers_project_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
-        state: "detached"
-      register: storage
-    - name: verify create storage for server testing
-      ansible.builtin.assert:
-        that:
-          storage is changed
-
     - name: create floating ip for server testing
       cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
@@ -48,7 +35,6 @@
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
-        storage_id: "{{ storage.cherryservers_storage.id }}"
         extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
       register: server
       check_mode: true
@@ -81,7 +67,6 @@
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
-        storage_id: "{{ storage.cherryservers_storage.id }}"
         extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
       register: server
     - name: verify create server
@@ -105,7 +90,6 @@
           - result.cherryservers_servers[0].hostname == server_hostname
           - result.cherryservers_servers[0].tags == server_tags
           - result.cherryservers_servers[0].ssh_keys[0] == sshkey.cherryservers_sshkey.id
-          - result.cherryservers_servers[0].storage_id == storage.cherryservers_storage.id
           - result.cherryservers_servers[0].ip_addresses | list | count == 3
 
     - name: test server creation idempotency with check mode
@@ -265,11 +249,6 @@
     - name: delete ssh key
       cherryservers.cloud.sshkey:
         id: "{{ sshkey.cherryservers_sshkey.id }}"
-        auth_token: "{{ cherryservers_api_key }}"
-        state: absent
-    - name: delete storage
-      cherryservers.cloud.storage:
-        id: "{{ storage.cherryservers_storage.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete floating ip
