@@ -70,7 +70,7 @@ seealso:
       link: https://docs.cherryservers.com/knowledge/elastic-block-storage
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -78,7 +78,7 @@ author:
 
 EXAMPLES = r"""
 - name: Create a detached storage volume
-  local.cherryservers.storage:
+  cherryservers.cloud.storage:
     state: "detached"
     project_id: 213668
     region: "eu_nord_1"
@@ -86,7 +86,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Create an attached storage volume
-  local.cherryservers.storage:
+  cherryservers.cloud.storage:
     project_id: 213668
     region: "eu_nord_1"
     size: 1
@@ -94,7 +94,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Delete a storage volume
-  local.cherryservers.storage:
+  cherryservers.cloud.storage:
     id: 596944
     state: "absent"
   register: result

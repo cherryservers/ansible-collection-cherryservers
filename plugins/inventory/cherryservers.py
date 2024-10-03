@@ -21,9 +21,9 @@ options:
   plugin:
     description:
       - Inventory plugin to use.
-      - Should always be V(local.cherryservers.cherryservers).
+      - Should always be V(cherryservers.cloud.cherryservers).
     required: true
-    choices: ['local.cherryservers.cherryservers']
+    choices: ['cherryservers.cloud.cherryservers']
   auth_token:
     description:
       - API authentication token for Cherry Servers public API.
@@ -63,12 +63,12 @@ options:
 
 EXAMPLES = """
 # Get all servers from a project.
-plugin: local.cherryservers.cherryservers
+plugin: cherryservers.cloud.cherryservers
 project_id: 123456
 auth_token: "my_api_key"
 
 # Get all servers from a specified region and that have the specified tags.
-plugin: local.cherryservers.cherryservers
+plugin: cherryservers.cloud.cherryservers
 project_id: 123456
 auth_token: "my_api_key"
 region: "eu_nord_1"
@@ -76,7 +76,7 @@ tags:
   env: "test"
 
 # Use grouping.
-plugin: local.cherryservers.cherryservers
+plugin: cherryservers.cloud.cherryservers
 project_id: 123456
 auth_token: "my_api_key"
 keyed_groups:
@@ -98,7 +98,7 @@ from ..module_utils import normalizers
 
 class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
     """Inventory plugin class for Cherry Servers."""
-    NAME = "local.cherryservers.cherryservers"
+    NAME = "cherryservers.cloud.cherryservers"
 
     def verify_file(self, path):
         """Determine if the inventory source file is valid."""

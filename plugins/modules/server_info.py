@@ -61,7 +61,7 @@ options:
             - Elastic block storage ID.
         type: int
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -69,17 +69,17 @@ author:
 
 EXAMPLES = r"""
 - name: Get single server
-  local.cherryservers.server_info:
+  cherryservers.cloud.server_info:
     id: 593462
   register: result
 
 - name: Get all project servers
-  local.cherryservers.server_info:
+  cherryservers.cloud.server_info:
     project_id: "213668"
   register: result
 
 - name: 'Get all servers in the EU Nord-1 region, that have the env: test-upd tag'
-  local.cherryservers.server_info:
+  cherryservers.cloud.server_info:
     region: "eu_nord_1"
     project_id: "213668"
     tags:
@@ -87,7 +87,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Get servers by plan
-  local.cherryservers.server_info:
+  cherryservers.cloud.server_info:
     project_id: "213668"
     plan: cloud_vps_1
   register: result

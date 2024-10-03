@@ -2,7 +2,7 @@
 - name: Run tests
   block:
     - name: create server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         region: "{{ fip_region }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -14,7 +14,7 @@
           - server is changed
 
     - name: test create floating ip missing parameter
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
       register: fip
@@ -25,7 +25,7 @@
           - fip is failed
 
     - name: test create floating ip with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ fip_region }}"
@@ -39,7 +39,7 @@
           - fip is changed
 
     - name: test no floating ip actually created
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         tags:
@@ -52,7 +52,7 @@
           - result is not changed
 
     - name: test create floating ip
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ fip_region }}"
@@ -63,7 +63,7 @@
           - fip is changed
 
     - name: test floating ip actually created
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
@@ -75,7 +75,7 @@
           - result.cherryservers_floating_ips[0].region == fip_region
 
     - name: test floating ip creation idempotency with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -88,7 +88,7 @@
           - result is not changed
 
     - name: test floating ip creation idempotency
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -100,7 +100,7 @@
           - result is not changed
 
     - name: test update floating ip with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -117,7 +117,7 @@
           - result is changed
 
     - name: test no floating ip update actually happened
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -132,7 +132,7 @@
           - result is not changed
 
     - name: test update floating ip
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -148,7 +148,7 @@
           - result is changed
 
     - name: test update floating ip actually happened
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
@@ -163,7 +163,7 @@
           - result.cherryservers_floating_ips[0].tags == fip_tags_basic
 
     - name: test floating ip update idempotency with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -180,7 +180,7 @@
           - result is not changed
 
     - name: test server update idempotency
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -196,7 +196,7 @@
           - result is not changed
 
     - name: test delete floating ip no id
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
       register: result
@@ -207,7 +207,7 @@
           - result is failed
 
     - name: test delete floating ip with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ fip.cherryservers_floating_ip.id }}"
@@ -219,7 +219,7 @@
           - result is changed
 
     - name: test no floating ip actually deleted
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
@@ -229,7 +229,7 @@
           - result.cherryservers_floating_ips | list | count == 1
 
     - name: test delete floating ip
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ fip.cherryservers_floating_ip.id }}"
@@ -243,7 +243,7 @@
       ansible.builtin.pause:
         seconds: 10
     - name: test floating ip actually deleted
-      local.cherryservers.floating_ip_info:
+      cherryservers.cloud.floating_ip_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
@@ -254,7 +254,7 @@
           - result is failed
 
     - name: test floating ip delete idempotency with check mode
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ fip.cherryservers_floating_ip.id }}"
@@ -266,7 +266,7 @@
           - result is not changed
 
     - name: test floating ip delete idempotency
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ fip.cherryservers_floating_ip.id }}"
@@ -278,12 +278,12 @@
 
   always:
     - name: delete server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete floating ip
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

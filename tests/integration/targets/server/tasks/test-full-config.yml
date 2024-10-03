@@ -2,7 +2,7 @@
 - name: Run tests
   block:
     - name: create ssh key for server testing
-      local.cherryservers.sshkey:
+      cherryservers.cloud.sshkey:
         label: "{{ fake_key_label }}"
         key: "{{ fake_public_key }}"
         auth_token: "{{ cherryservers_api_key }}"
@@ -13,7 +13,7 @@
           - sshkey is changed
 
     - name: create storage for server testing
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         size: 1
         region: "{{ server_region }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -26,7 +26,7 @@
           storage is changed
 
     - name: create floating ip for server testing
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         auth_token: "{{ cherryservers_api_key }}"
         region: "{{ server_region }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -37,7 +37,7 @@
           fip is changed
 
     - name: test create server with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
@@ -58,7 +58,7 @@
           - server is changed
 
     - name: test no server actually created
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
@@ -70,7 +70,7 @@
           - result is not changed
 
     - name: test create server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
@@ -90,7 +90,7 @@
           - server is changed
 
     - name: test server actually created
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
       register: result
@@ -109,7 +109,7 @@
           - result.cherryservers_servers[0].ip_addresses | list | count == 3
 
     - name: test server creation idempotency with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
@@ -128,7 +128,7 @@
           - result is not changed
 
     - name: test server creation idempotency
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
@@ -146,7 +146,7 @@
           - result is not changed
 
     - name: test reinstall server with no allow_reinstall
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -162,7 +162,7 @@
           - result is failed
 
     - name: test reinstall server with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
@@ -179,7 +179,7 @@
           - result is changed
 
     - name: test no server reinstall actually happened
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
@@ -193,7 +193,7 @@
           - result is not changed
 
     - name: test reinstall server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -209,7 +209,7 @@
           - result is changed
 
     - name: test reinstall server actually happened
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
@@ -225,7 +225,7 @@
           - result.cherryservers_servers[0].ssh_keys[0] == sshkey.cherryservers_sshkey.id
 
     - name: test server reinstall idempotency with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         project_id: "{{ cherryservers_project_id }}"
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
@@ -241,7 +241,7 @@
           - result is not changed
 
     - name: test server reinstall idempotency
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
@@ -257,23 +257,23 @@
 
   always:
     - name: delete servers
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete ssh key
-      local.cherryservers.sshkey:
+      cherryservers.cloud.sshkey:
         id: "{{ sshkey.cherryservers_sshkey.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ storage.cherryservers_storage.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent
     - name: delete floating ip
-      local.cherryservers.floating_ip:
+      cherryservers.cloud.floating_ip:
         id: ["{{ fip.cherryservers_floating_ip.id }}"]
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

@@ -2,7 +2,7 @@
 - name: Run tests
   block:
     - name: test create storage with missing parameters
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ storage_region }}"
@@ -14,7 +14,7 @@
           - storage is failed
 
     - name: test create storage with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ storage_region }}"
@@ -29,7 +29,7 @@
           - storage is changed
 
     - name: test no storage actually created
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         description: "{{ storage_description }}"
@@ -41,7 +41,7 @@
           - result.cherryservers_storages | list | count == 0
 
     - name: test create storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ storage_region }}"
@@ -55,7 +55,7 @@
           - storage is changed
 
     - name: test storage actually created
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ storage.cherryservers_storage.id }}"
       register: result
@@ -70,7 +70,7 @@
           - result.cherryservers_storages[0].description == storage_description
 
     - name: test create storage idempotency with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ storage.cherryservers_storage.id }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -86,7 +86,7 @@
           - result is not changed
 
     - name: test create storage idempotency
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ storage.cherryservers_storage.id }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -101,7 +101,7 @@
           - result is not changed
 
     - name: test update storage with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ storage.cherryservers_storage.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         description: "{{ storage_updated_description }}"
@@ -115,7 +115,7 @@
           - result is changed
 
     - name: test storage is not updated
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ storage.cherryservers_storage.id }}"
       register: result
@@ -127,7 +127,7 @@
           - result.cherryservers_storages[0].state == "attached"
 
     - name: test update storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ storage.cherryservers_storage.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         description: "{{ storage_updated_description }}"
@@ -145,7 +145,7 @@
         seconds: 15
 
     - name: test storage is updated
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         description: "{{ storage_updated_description }}"
@@ -158,7 +158,7 @@
           - updated_storage.cherryservers_storages[0].state == "detached"
 
     - name: test update storage idempotency with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
         auth_token: "{{ cherryservers_api_key }}"
         description: "{{ storage_updated_description }}"
@@ -172,7 +172,7 @@
           - result is not changed
 
     - name: test update storage idempotency
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
         auth_token: "{{ cherryservers_api_key }}"
         description: "{{ storage_updated_description }}"
@@ -185,7 +185,7 @@
           - result is not changed
 
     - name: test attach storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
         auth_token: "{{ cherryservers_api_key }}"
         target_server_id: "{{ cherryservers_baremetal_server_id }}"
@@ -196,7 +196,7 @@
           - result is changed
 
     - name: test storage is attached
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
       register: result
@@ -206,7 +206,7 @@
           - result.cherryservers_storages[0].state == "attached"
 
     - name: test delete storage without id
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
       register: result
@@ -217,7 +217,7 @@
           - result is failed
 
     - name: test delete storage with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
@@ -229,7 +229,7 @@
           - result is changed
 
     - name: test no storage actually deleted
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
       register: result
@@ -239,7 +239,7 @@
           - result.cherryservers_storages | list | count == 1
 
     - name: test delete storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
@@ -250,7 +250,7 @@
           - result is changed
 
     - name: test storage actually deleted
-      local.cherryservers.storage_info:
+      cherryservers.cloud.storage_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
       register: result
@@ -261,7 +261,7 @@
           - result is failed
 
     - name: test storage delete idempotency with check mode
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
@@ -273,7 +273,7 @@
           - result is not changed
 
     - name: test storage delete idempotency
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         auth_token: "{{ cherryservers_api_key }}"
         state: "absent"
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
@@ -285,7 +285,7 @@
 
   always:
     - name: delete storage
-      local.cherryservers.storage:
+      cherryservers.cloud.storage:
         id: "{{ updated_storage.cherryservers_storages[0].id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

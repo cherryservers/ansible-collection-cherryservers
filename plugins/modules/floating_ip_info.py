@@ -50,7 +50,7 @@ options:
         type: int
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -58,19 +58,19 @@ author:
 
 EXAMPLES = r"""
 - name: Get single floating IP
-  local.cherryservers.floating_ip_info:
+  cherryservers.cloud.floating_ip_info:
     auth_token: "{{ auth_token }}"
     id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
   register: result
 
 - name: Get all project floating IPs
-  local.cherryservers.floating_ip_info:
+  cherryservers.cloud.floating_ip_info:
     auth_token: "{{ auth_token }}"
     project_id: 123456
   register: result
 
 - name: 'Get all floating IPs in the EU Nord-1 region, that have the env: dev tag'
-  local.cherryservers.floating_ip_info:
+  cherryservers.cloud.floating_ip_info:
     auth_token: "{{ auth_token }}"
     region: "eu_nord_1"
     project_id: "123456"

@@ -2,7 +2,7 @@
 - name: Run tests
   block:
     - name: test create server missing parameter
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         state: "present"
@@ -14,7 +14,7 @@
           - server is failed
 
     - name: test create server with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         state: "present"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -29,7 +29,7 @@
           - server is changed
 
     - name: test no server actually created
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "ansible-test-present-server"
@@ -41,7 +41,7 @@
           - result is not changed
 
     - name: test create server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         state: "present"
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -54,7 +54,7 @@
           - server is changed
 
     - name: test server actually created
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
       register: result
@@ -67,7 +67,7 @@
           - result.cherryservers_servers[0].plan == server_plan
 
     - name: test server creation idempotency with check mode
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         state: "present"
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
@@ -82,7 +82,7 @@
           - result is not changed
 
     - name: test server creation idempotency
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         state: "present"
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
@@ -97,7 +97,7 @@
 
   always:
     - name: delete servers
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         id: "{{ server.cherryservers_server.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

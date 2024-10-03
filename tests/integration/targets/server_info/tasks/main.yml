@@ -2,7 +2,7 @@
 - name: Run tests
   block:
     - name: create first server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         region: "{{ server_region }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -16,7 +16,7 @@
           - first_server is changed
 
     - name: create second server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         region: "{{ server_region }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -30,7 +30,7 @@
           - second_server is changed
 
     - name: test gather by project_id
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
       register: result
@@ -41,7 +41,7 @@
           - result is not changed
 
     - name: test gather by project_id with check mode
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
       check_mode: true
@@ -53,7 +53,7 @@
           - result is not changed
 
     - name: test gather server by id
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ first_server.cherryservers_server.id }}"
       register: result
@@ -64,7 +64,7 @@
           - result is not changed
 
     - name: test gather server by id with check mode
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ first_server.cherryservers_server.id }}"
       check_mode: true
@@ -76,7 +76,7 @@
           - result is not changed
 
     - name: test gather server by id wrong
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         id: "1234"
       register: result
@@ -87,7 +87,7 @@
           - result is failed
 
     - name: test gather server by hostname
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ second_server.cherryservers_server.hostname }}"
@@ -99,7 +99,7 @@
           - result is not changed
 
     - name: test gather server by hostname with check mode
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ second_server.cherryservers_server.hostname }}"
@@ -112,7 +112,7 @@
           - result is not changed
 
     - name: test gather server by hostname wrong
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "none"
@@ -124,7 +124,7 @@
           - result is not changed
 
     - name: test gather server by tags
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_tags }}"
@@ -136,7 +136,7 @@
           - result is not changed
 
     - name: test gather server by tags with check mode
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_tags }}"
@@ -149,7 +149,7 @@
           - result is not changed
 
     - name: test gather server by tags wrong
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         tags:
@@ -162,7 +162,7 @@
           - result is not changed
 
     - name: test gather multiple options
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         tags: "{{ server_tags }}"
         project_id: "{{ cherryservers_project_id }}"
@@ -175,7 +175,7 @@
           - result is not changed
 
     - name: test gather with all options
-      local.cherryservers.server_info:
+      cherryservers.cloud.server_info:
         auth_token: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         plan: "{{ second_server.cherryservers_server.plan }}"
@@ -192,7 +192,7 @@
           - result is not changed
   always:
     - name: delete first server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         id: "{{ first_server.cherryservers_server.id }}"
         state: "absent"
         auth_token: "{{ cherryservers_api_key }}"
@@ -203,7 +203,7 @@
           - result is changed
 
     - name: delete second server
-      local.cherryservers.server:
+      cherryservers.cloud.server:
         id: "{{ second_server.cherryservers_server.id }}"
         state: "absent"
         auth_token: "{{ cherryservers_api_key }}"

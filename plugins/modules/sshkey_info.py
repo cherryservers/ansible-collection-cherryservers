@@ -43,7 +43,7 @@ options:
 
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -51,13 +51,13 @@ author:
 
 EXAMPLES = r"""
 - name: Get SSH key by ID
-  local.cherryservers.sshkey_info:
+  cherryservers.cloud.sshkey_info:
     auth_token: "{{ auth_token }}"
     id: 0000
   register: result
 
 - name: Get SSH key by label
-  local.cherryservers.sshkey_info:
+  cherryservers.cloud.sshkey_info:
     auth_token: "{{ auth_token }}"
     label: "my-key"
   register: result

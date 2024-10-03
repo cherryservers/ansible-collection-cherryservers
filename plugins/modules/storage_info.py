@@ -51,7 +51,7 @@ options:
         type: int
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -59,19 +59,19 @@ author:
 
 EXAMPLES = r"""
 - name: Get a storage volume by ID
-  local.cherryservers.storage_info:
+  cherryservers.cloud.storage_info:
     auth_token: "{{ auth_token }}"
     id: 123456
   register: result
 
 - name: Get all project storage volumes
-  local.cherryservers.storage_info:
+  cherryservers.cloud.storage_info:
     auth_token: "{{ auth_token }}"
     project_id: 123456
   register: result
 
 - name: Get all project storage volumes, that are detached and have test description
-  local.cherryservers.storage_info:
+  cherryservers.cloud.storage_info:
     auth_token: "{{ auth_token }}"
     project_id: 123456
     state: "detached"

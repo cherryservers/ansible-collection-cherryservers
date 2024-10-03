@@ -127,7 +127,7 @@ options:
         type: bool
         default: false
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -135,7 +135,7 @@ author:
 
 EXAMPLES = r"""
 - name: Create a server and wait for it to become active
-  local.cherryservers.server:
+  cherryservers.cloud.server:
     state: "active"
     project_id: "213668"
     region: "eu_nord_1"
@@ -150,7 +150,7 @@ EXAMPLES = r"""
     src: "/home/mypath/cloud-init.yaml"
   register: userdata
 - name: Create a server with more options
-  local.cherryservers.server:
+  cherryservers.cloud.server:
     project_id: "213668"
     region: "eu_nord_1"
     plan: "cloud_vps_1"
@@ -164,7 +164,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Update a server
-  local.cherryservers.server:
+  cherryservers.cloud.server:
     state: "active"
     id: 593462
     tags:
@@ -178,7 +178,7 @@ EXAMPLES = r"""
     src: "/home/mypath/cloud-init.yaml"
   register: userdata
 - name: Update a server with rebuilding
-  local.cherryservers.server:
+  cherryservers.cloud.server:
     state: "active"
     id: 593462
     hostname: "test"
@@ -192,7 +192,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Delete a server
-  local.cherryservers.server:
+  cherryservers.cloud.server:
     state: "absent"
     id: 593225
   register: result

@@ -77,7 +77,7 @@ options:
         type: dict
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -85,7 +85,7 @@ author:
 
 EXAMPLES = r"""
 - name: Create a floating IP
-  local.cherryservers.floating_ip:
+  cherryservers.cloud.floating_ip:
     project_id: 213668
     region: "eu_nord_1"
     target_server_id: "590738"
@@ -96,7 +96,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Update a floating IP
-  local.cherryservers.floating_ip:
+  cherryservers.cloud.floating_ip:
     id: "a0ff92c9-21f6-c387-33d0-5c941c0435f0"
     target_server_id: 590738
     ptr_record: "anstest"
@@ -106,7 +106,7 @@ EXAMPLES = r"""
   register: result
 
 - name: Delete floating IP
-  local.cherryservers.floating_ip:
+  cherryservers.cloud.floating_ip:
     state: absent
     id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
 """

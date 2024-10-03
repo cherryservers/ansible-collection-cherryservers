@@ -53,7 +53,7 @@ options:
 
 
 extends_documentation_fragment:
-  - local.cherryservers.cherryservers
+  - cherryservers.cloud.cherryservers
 
 author:
     - Martynas Deveikis (@caliban0)
@@ -61,7 +61,7 @@ author:
 
 EXAMPLES = r"""
 - name: Create SSH key
-  local.cherryservers.sshkey:
+  cherryservers.cloud.sshkey:
     auth_token: "{{ auth_token }}"
     label: "SSH-test-key"
     key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
@@ -69,14 +69,14 @@ EXAMPLES = r"""
   register: result
 
 - name: Update SSH key
-  local.cherryservers.sshkey:
+  cherryservers.cloud.sshkey:
     auth_token: "{{ auth_token }}"
     label: "SSH-test-key-updated"
     id: "{{ result.cherryservers_sshkey.id }}"
     state: present
 
 - name: Delete SSH key
-  local.cherryservers.sshkey:
+  cherryservers.cloud.sshkey:
     auth_token: "{{ auth_token }}"
     label: "SSH-test-key-updated"
     state: absent
