@@ -240,7 +240,9 @@ class FloatingIPModule(standard_module.StandardModule):
         resource["a_record"] = a_org
         resource["target_server_id"] = target_server_id_org
 
-        return {"update": req}
+        if req:
+            return {"update": req}
+        return {}
 
     def _perform_update(self, requests: dict, resource: dict) -> dict:
         if requests.get("update", None):

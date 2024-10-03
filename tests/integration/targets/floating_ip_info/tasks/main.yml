@@ -77,11 +77,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "ef607e8a-d9d4-d4ba-7379-55dbd841e06c"
       register: result
+      ignore_errors: true
     - name: verify gather floating ip by id wrong
       ansible.builtin.assert:
         that:
-          - result.cherryservers_floating_ips | list | count == 0
-          - result is not changed
+          - result is failed
 
     - name: test gather floating ip by address
       local.cherryservers.floating_ip_info:

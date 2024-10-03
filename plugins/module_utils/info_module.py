@@ -62,6 +62,8 @@ class InfoModule(module.Module, ABC):
             resource = self._get_single_resource()
             if resource:
                 resources.append(resource)
+            else:
+                self._module.fail_json(msg=f"no {self.name} resource found")
         else:
             resources = self._get_resource_list()
 

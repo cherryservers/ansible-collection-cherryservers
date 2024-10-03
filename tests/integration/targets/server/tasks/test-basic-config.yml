@@ -210,11 +210,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
       register: result
+      ignore_errors: true
     - name: verify server actually deleted
       ansible.builtin.assert:
         that:
-          - result.cherryservers_servers | list | count == 0
-          - result is not changed
+          - result is failed
 
     - name: test server delete idempotency with check mode
       local.cherryservers.server:

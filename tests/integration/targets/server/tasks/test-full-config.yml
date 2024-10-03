@@ -25,6 +25,17 @@
         that:
           storage is changed
 
+    - name: create floating ip for server testing
+      local.cherryservers.floating_ip:
+        auth_token: "{{ cherryservers_api_key }}"
+        region: "{{ server_region }}"
+        project_id: "{{ cherryservers_project_id }}"
+      register: fip
+    - name: verify create floating ip for server testing
+      ansible.builtin.assert:
+        that:
+          fip is changed
+
     - name: test create server with check mode
       local.cherryservers.server:
         auth_token: "{{ cherryservers_api_key }}"
@@ -38,6 +49,7 @@
         user_data: "{{ server_user_data }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         storage_id: "{{ storage.cherryservers_storage.id }}"
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: server
       check_mode: true
     - name: verify create server with check mode
@@ -70,6 +82,7 @@
         user_data: "{{ server_user_data }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         storage_id: "{{ storage.cherryservers_storage.id }}"
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: server
     - name: verify create server
       ansible.builtin.assert:
@@ -93,6 +106,7 @@
           - result.cherryservers_servers[0].tags == server_tags
           - result.cherryservers_servers[0].ssh_keys[0] == sshkey.cherryservers_sshkey.id
           - result.cherryservers_servers[0].storage_id == storage.cherryservers_storage.id
+          - result.cherryservers_servers[0].ip_addresses | list | count == 3
 
     - name: test server creation idempotency with check mode
       local.cherryservers.server:
@@ -105,6 +119,7 @@
         active_timeout: "{{ server_active_timeout }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_image }}"
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: result
       check_mode: true
     - name: verify server creation idempotency with check mode
@@ -123,6 +138,7 @@
         active_timeout: "{{ server_active_timeout }}"
         ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
         image: "{{ server_image }}"
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: result
     - name: verify server creation idempotency
       ansible.builtin.assert:
@@ -254,5 +270,10 @@
     - name: delete storage
       local.cherryservers.storage:
         id: "{{ storage.cherryservers_storage.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+    - name: delete floating ip
+      local.cherryservers.floating_ip:
+        id: ["{{ fip.cherryservers_floating_ip.id }}"]
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

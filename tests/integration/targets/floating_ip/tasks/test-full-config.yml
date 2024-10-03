@@ -264,11 +264,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
+      ignore_errors: true
     - name: verify floating ip actually deleted
       ansible.builtin.assert:
         that:
-          - result.cherryservers_floating_ips | list | count == 0
-          - result is not changed
+          - result is failed
 
     - name: test floating ip delete idempotency with check mode
       local.cherryservers.floating_ip:

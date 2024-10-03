@@ -84,11 +84,11 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "1"
       register: result
+      ignore_errors: true
     - name: verify gather with wrong id
       ansible.builtin.assert:
         that:
-          - result.cherryservers_storages | list | count == 0
-          - result is not changed
+          - result is failed
 
     - name: test gather by region
       local.cherryservers.storage_info:

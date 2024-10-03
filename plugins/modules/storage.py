@@ -260,7 +260,7 @@ class StorageModule(standard_module.StandardModule):
         )
 
         if params["state"] == "attached":
-            self._storage_manager.attach(params["id"], params["target_server_id"])
+            self._storage_manager.attach(storage["id"], params["target_server_id"])
 
         return self._storage_manager.get_by_id(storage["id"])
 

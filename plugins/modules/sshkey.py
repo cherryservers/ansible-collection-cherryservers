@@ -169,7 +169,9 @@ class SSHKeyModule(standard_module.StandardModule):
             if params[k] is not None and params[k] != resource[k]:
                 req[k] = params[k]
 
-        return {"update": req}
+        if req:
+            return {"update": req}
+        return {}
 
     def _perform_creation(self) -> dict:
         key = self._sshkey_manager.create(params={
