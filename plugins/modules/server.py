@@ -27,7 +27,7 @@ options:
             - The state of the server.
             - V(present) will ensure the server exists.
             - V(active) will ensure the server exists and is active.
-            - V(absent) will ensure that the server with the provided O(id) does not exist.
+            - V(absent) will ensure that the server doesn't exist.
         choices: ['present', 'active', 'absent']
         type: str
         default: active
@@ -123,7 +123,7 @@ options:
             - Setting this to true will allow reinstalling the server.
             - This parameter is not saved in server state and you need to set it to V(true)
             - every time you need to do so.
-            - Reinstalling will make the server temporarily inactive.
+            - Reinstalling will wipe all server data and make it temporarily inactive.
         type: bool
         default: false
 extends_documentation_fragment:
