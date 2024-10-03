@@ -157,7 +157,7 @@ cherryservers_floating_ip:
       description: ID of the server to which the floating IP is targeted to.
       returned: if exists
       type: int
-      sample: "123456"
+      sample: 123456
     project_id:
       description: Cherry Servers project ID, associated with the floating IP.
       returned: always
@@ -168,6 +168,11 @@ cherryservers_floating_ip:
       returned: if exists
       type: str
       sample: "fe8b01f4-2b85-eae9-cbfb-3288c507f318"
+    type:
+      description: Type of the IP. Should always be 'floating-ip'
+      returned: always
+      type: str
+      sample: "floating-ip"
 """
 
 from typing import Optional
@@ -185,7 +190,10 @@ class FloatingIPModule(standard_module.StandardModule):
 
     def _get_resource(self) -> Optional[dict]:
         if self._module.params["id"]:
-            return self._fip_manager.get_by_id(self._module.params["id"])
+            ip = self._fip_manager.get_by_id(self._module.params["id"])
+            if ip["type"] != "floating-ip":
+                self._module.fail_json(msg=f"Unexpected type {ip['type']}, should be floating-ip")
+            return ip
         return None
 
     def _perform_deletion(self, resource: dict):

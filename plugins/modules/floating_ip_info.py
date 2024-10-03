@@ -137,6 +137,11 @@ cherryservers_floating_ips:
       returned: always
       type: int
       sample: 123456
+    type:
+      description: Type of the IP. Should always be 'floating-ip'
+      returned: always
+      type: str
+      sample: "floating-ip"
 """
 
 from typing import List, Optional
