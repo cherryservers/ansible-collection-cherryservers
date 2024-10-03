@@ -21,6 +21,8 @@ jobs:
           - server
           - floating_ip_info
           - floating_ip
+          - storage_info
+          - storage
     steps:
       - name: Perform testing
         uses: ansible-community/ansible-test-gh-action@release/v1
