@@ -73,7 +73,7 @@ EXAMPLES = r"""
   cherryservers.cloud.floating_ip_info:
     auth_token: "{{ auth_token }}"
     region: "eu_nord_1"
-    project_id: "123456"
+    project_id: 123456
     tags:
       env: "dev"
   register: result
@@ -126,7 +126,7 @@ cherryservers_floating_ips:
       description: ID of the server to which the floating IP is targeted to.
       returned: if exists
       type: int
-      sample: "123456"
+      sample: 123456
     route_ip_id:
       description: ID of the IP to which the floating IP is routed to.
       returned: if exists

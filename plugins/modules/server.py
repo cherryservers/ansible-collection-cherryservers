@@ -44,7 +44,7 @@ options:
             - Required if server doesn't exist.
             - Required if server exists and O(id) is not provided.
             - Cannot be set for an existing server.
-        type: str
+        type: int
     plan:
         description:
             - Slug of the server plan.
@@ -137,7 +137,7 @@ EXAMPLES = r"""
 - name: Create a server and wait for it to become active
   cherryservers.cloud.server:
     state: "active"
-    project_id: "213668"
+    project_id: 213668
     region: "eu_nord_1"
     plan: "cloud_vps_1"
     tags:
@@ -151,7 +151,7 @@ EXAMPLES = r"""
   register: userdata
 - name: Create a server with more options
   cherryservers.cloud.server:
-    project_id: "213668"
+    project_id: 213668
     region: "eu_nord_1"
     plan: "cloud_vps_1"
     image: "fedora_39_64bit"
@@ -213,7 +213,7 @@ cherryservers_server:
       description: Server ID.
       returned: always
       type: int
-      sample: "123456"
+      sample: 123456
     image:
       description: Server OS image slug.
       returned: always
@@ -436,7 +436,7 @@ class ServerModule(standard_module.StandardModule):
                 "type": "str",
             },
             "id": {"type": "int"},
-            "project_id": {"type": "str"},
+            "project_id": {"type": "int"},
             "plan": {"type": "str"},
             "image": {"type": "str"},
             "os_partition_size": {"type": "int"},

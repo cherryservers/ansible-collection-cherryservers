@@ -88,7 +88,7 @@ EXAMPLES = r"""
   cherryservers.cloud.floating_ip:
     project_id: 213668
     region: "eu_nord_1"
-    target_server_id: "590738"
+    target_server_id: 590738
     ptr_record: "moduletestptr"
     a_record: "moduletesta"
     tags:
