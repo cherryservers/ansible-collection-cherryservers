@@ -139,8 +139,8 @@ class SSHKeyModule(standard_module.StandardModule):
         current_key = None
         for key in keys:
             if any(
-                    self._module.params[k] is not None and self._module.params[k] == key[k]
-                    for k in ("fingerprint", "id", "label", "key")
+                self._module.params[k] is not None and self._module.params[k] == key[k]
+                for k in ("fingerprint", "id", "label", "key")
             ):
                 if current_key is not None:
                     self._module.fail_json(msg="error, multiple matching keys found")
@@ -174,10 +174,12 @@ class SSHKeyModule(standard_module.StandardModule):
         return {}
 
     def _perform_creation(self) -> dict:
-        key = self._sshkey_manager.create(params={
-            "label": self._module.params["label"],
-            "key": self._module.params["key"]
-        })
+        key = self._sshkey_manager.create(
+            params={
+                "label": self._module.params["label"],
+                "key": self._module.params["key"],
+            }
+        )
 
         return self._sshkey_manager.get_by_id(key["id"])
 

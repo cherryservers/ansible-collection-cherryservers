@@ -98,6 +98,7 @@ from ..module_utils import normalizers
 
 class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
     """Inventory plugin class for Cherry Servers."""
+
     NAME = "cherryservers.cloud.cherryservers"
 
     def verify_file(self, path):
