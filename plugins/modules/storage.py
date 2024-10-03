@@ -163,57 +163,77 @@ cherryservers_storage:
       sample: "detached"
 """
 
-from typing import Optional, Tuple, Any
+from typing import Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import client, common, normalizers, base_module
+from ..module_utils import standard_module
+from ..module_utils.resource_managers import storage_manager
 
 
-class StorageModule(base_module.BaseModule):
-    """TODO"""
+class StorageModule(standard_module.StandardModule):
+    """Cherry Servers module for managing EBS resources."""
 
-    timeout = 20
+    def __init__(self):
+        super().__init__()
+        self._storage_manager = storage_manager.StorageManager(self._module)
 
-    @property
-    def name(self) -> str:
-        """TODO"""
-        return """cherryservers_storage"""
+    def _get_resource(self) -> Optional[dict]:
+        if self._module.params["id"]:
+            return self._storage_manager.get_by_id(self._module.params["id"])
+        return None
 
-    def _attach_storage(self, target_server_id: int):
-        """Attach storage volume to server.
+    def _perform_deletion(self, resource: dict):
+        if resource["state"] == "attached":
+            self._storage_manager.detach(resource["id"])
 
-        Fail the module if attachment fails.
-        """
-        status, resp = self._api_client.send_request(
-            "POST",
-            f"storages/{self.resource['id']}/attachments",
-            self.timeout,
-            attach_to=target_server_id,
-        )
+        self._storage_manager.delete(resource["id"])
 
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to attach {self.name}: {resp}"
-            )
-
-    def _detach_storage(self):
-        """Detach storage volume from server."""
-        status, resp = self._api_client.send_request(
-            "DELETE",
-            f"storages/{self.resource['id']}/attachments",
-            self.timeout,
-        )
-
-        if status != 204:
-            self._module.fail_json(
-                msg=f"error {status}, failed to detach {self.name}: {resp}"
-            )
-
-    def _normalize(self, resource: dict) -> dict:
-        return normalizers.normalize_storage(resource)
-
-    def _create(self):
+    def _get_update_requests(self, resource: dict) -> dict:
+        resize_req = {}
+        req = {}
         params = self._module.params
+        attach_required = False
 
+        for k in ["size", "description"]:
+            if params[k] is not None and params[k] != resource[k]:
+                resize_req[k] = params[k]
+
+        if resize_req:
+            req["resize"] = resize_req
+
+        if params["state"] == "detached" and params["target_server_id"] is not None:
+            self._module.fail_json(
+                msg="can't use target_server_id with detached storage state"
+            )
+
+        if (
+            params["target_server_id"] is not None
+            and params["target_server_id"] != resource["target_server_id"]
+        ):
+            attach_required = True
+            req["attach"] = {"target_server_id": params["target_server_id"]}
+
+        if resource["state"] == "attached":
+            if attach_required or params["state"] == "detached":
+                req["detach"] = {"detach": True}
+
+        return req
+
+    def _perform_update(self, requests: dict, resource: dict) -> dict:
+
+        if requests.get("detach", None):
+            self._storage_manager.detach(resource["id"])
+        if requests.get("attach", None):
+            self._storage_manager.attach(
+                resource["id"], requests["attach"]["target_server_id"]
+            )
+        if requests.get("resize", None):
+            # We return here, because on update the storage changes ID, thus is inaccessible.
+            return self._storage_manager.update(resource["id"], requests["resize"])
+
+        return self._storage_manager.get_by_id(resource["id"])
+
+    def _validate_creation_params(self):
+        params = self._module.params
         if any(params[k] is None for k in ["project_id", "region", "size"]):
             self._module.fail_json(
                 "project_id, region and size are required parameters for storage volume creation"
@@ -227,132 +247,31 @@ class StorageModule(base_module.BaseModule):
                 "can't use target_server_id with detached storage state"
             )
 
-        if self._module.check_mode:
-            self._module.exit_json(changed=True)
+    def _perform_creation(self) -> dict:
+        params = self._module.params
 
-        status, resp = self._api_client.send_request(
-            "POST",
-            f"projects/{params['project_id']}/storages",
-            self.timeout,
-            region=params["region"],
-            size=params["size"],
-            description=params["description"],
+        storage = self._storage_manager.create(
+            project_id=params["project_id"],
+            params={
+                "region": params["region"],
+                "size": params["size"],
+                "description": params["description"],
+            },
         )
-
-        if status != 201:
-            self._module.fail_json(
-                msg=f"error {status}, failed to create {self.name}: {resp}"
-            )
-
-        self.resource = resp
 
         if params["state"] == "attached":
-            self._attach_storage(self._module.params["target_server_id"])
+            self._storage_manager.attach(params["id"], params["target_server_id"])
 
-        self._exit_with_return()
+        return self._storage_manager.get_by_id(storage["id"])
 
-    def _update(self):
-        """Execute update state logic."""
+    @property
+    def name(self) -> str:
+        """Cherry Servers storage volume name."""
+        return "cherryservers_storage"
 
-        req, resize_changed = self._get_resize_update_request()
-        detach_required = False
-        attach_required = False
-
-        params = self._module.params
-
-        if params["state"] == "detached" and params["target_server_id"] is not None:
-            self._module.fail_json(
-                msg="can't use target_server_id with detached storage state"
-            )
-
-        if (
-            params["target_server_id"] is not None
-            and params["target_server_id"] != self.resource["target_server_id"]
-        ):
-            attach_required = True
-
-        if self.resource["state"] == "attached":
-            if attach_required or params["state"] == "detached":
-                detach_required = True
-
-        changed = resize_changed or detach_required or attach_required
-        self._exit_if_no_change_for_update(changed)
-
-        if detach_required:
-            self._detach_storage()
-        if attach_required:
-            self._attach_storage(self._module.params["target_server_id"])
-
-        if resize_changed:
-            status, resp = self._api_client.send_request(
-                "PUT", f"storages/{self.resource['id']}", self.timeout, **req
-            )
-            if status != 201:
-                self._module.fail_json(
-                    msg=f"error {status}, failed to resize {self.name}: {resp}"
-                )
-
-            self.resource = resp
-
-        self._exit_with_return()
-
-    def _get_resize_update_request(self) -> Tuple[dict, bool]:
-        """Get Cherry Servers storage volume update API request.
-
-        Check for differences between current volume state and module options
-        and add the options that have diverged to the update request.
-
-        Returns:
-            Tuple[dict, bool]: A dictionary with the request parameters
-            and a boolean indicating whether there is any difference between the volume state
-            and module options.
-        """
-        req = {}
-        changed = False
-        params = self._module.params
-
-        for k in ["size", "description"]:
-            if params[k] is not None and params[k] != self.resource[k]:
-                changed = True
-                req[k] = params[k]
-
-        return req, changed
-
-    def _delete(self):
-        self._exit_if_no_change_for_delete()
-
-        if self.resource["state"] == "attached":
-            self._detach_storage()
-
-        status, resp = self._api_client.send_request(
-            "DELETE", f"storages/{self.resource['id']}", self.timeout
-        )
-        if status != 204:
-            self._module.fail_json(
-                msg=f"error {status}, failed to delete {self.name}: {resp}"
-            )
-
-        self._module.exit_json(changed=True)
-
-    def _read_by_id(self, resource_id: Any) -> Optional[dict]:
-        status, resp = self._api_client.send_request(
-            "GET",
-            f"storages/{resource_id}",
-            self.timeout,
-        )
-        if status not in (200, 404):
-            self._module.fail_json(msg=f"error {status} getting {self.name}: {resp}")
-        if status == 200:
-            return resp
-        return None
-
-
-def get_module_args() -> dict:
-    """Return a dictionary with the modules argument specification."""
-    module_args = common.get_base_argument_spec()
-
-    module_args.update(
-        {
+    @property
+    def _arg_spec(self) -> dict:
+        return {
             "state": {
                 "choices": ["attached", "detached", "absent"],
                 "default": "attached",
@@ -365,26 +284,20 @@ def get_module_args() -> dict:
             "description": {"type": "str"},
             "target_server_id": {"type": "int"},
         }
-    )
 
-    return module_args
+    def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
+        return utils.AnsibleModule(
+            argument_spec=arg_spec,
+            supports_check_mode=True,
+            required_if=[
+                ("state", "absent", ["id"], True),
+            ],
+        )
 
 
 def main():
     """Main function."""
-    module_args = get_module_args()
-
-    module = utils.AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True,
-        required_if=[
-            ("state", "absent", ["id"], True),
-        ],
-    )
-
-    api_client = client.CherryServersClient(module)
-    storage_module = StorageModule(module, api_client)
-    storage_module.run()
+    StorageModule().run()
 
 
 if __name__ == "__main__":

@@ -3,11 +3,12 @@
 """TODO"""
 
 from .. import normalizers
-from .resource_manager import ResourceManager, RequestTemplate
+from .resource_manager import ResourceManager, RequestTemplate, Request, Method
 
 
 class StorageManager(ResourceManager):
     """TODO"""
+
     GET_TIMEOUT = 20
 
     @property
@@ -23,7 +24,7 @@ class StorageManager(ResourceManager):
         return RequestTemplate(
             url_template="storages/{id}",
             timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200, 404)
+            valid_status_codes=(200, 404),
         )
 
     @property
@@ -31,5 +32,89 @@ class StorageManager(ResourceManager):
         return RequestTemplate(
             url_template="projects/{project_id}/storages",
             timeout=self.GET_TIMEOUT,
-            valid_status_codes=(200,)
+            valid_status_codes=(200,),
+        )
+
+    def get_by_id(self, storage_id: int) -> dict:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                url=f"storages/{storage_id}",
+                method=Method.GET,
+                timeout=self.GET_TIMEOUT,
+                valid_status_codes=(200, 404),
+                params=None,
+            )
+        )
+
+    def get_by_project_id(self, project_id: int) -> dict:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                url=f"projects/{project_id}/storages",
+                method=Method.GET,
+                timeout=self.GET_TIMEOUT,
+                valid_status_codes=(200,),
+                params=None,
+            )
+        )
+
+    def create(self, project_id: str, params: dict, timeout: int = 30) -> dict:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                url=f"projects/{project_id}/storages",
+                method=Method.POST,
+                timeout=timeout,
+                valid_status_codes=(201,),
+                params=params,
+            )
+        )
+
+    def update(self, storage_id: int, params: dict, timeout: int = 30) -> dict:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                url=f"storages/{storage_id}",
+                method=Method.PUT,
+                timeout=timeout,
+                valid_status_codes=(201,),
+                params=params,
+            )
+        )
+
+    def delete(self, storage_id: int, timeout: int = 30):
+        """TODO"""
+        self.perform_request(
+            Request(
+                url=f"storages/{storage_id}",
+                method=Method.DELETE,
+                timeout=timeout,
+                valid_status_codes=(204,),
+                params=None,
+            )
+        )
+
+    def attach(self, storage_id: int, server_id: int, timeout: int = 30) -> dict:
+        """TODO"""
+        return self.perform_request(
+            Request(
+                url=f"storages/{storage_id}/attachments",
+                method=Method.POST,
+                timeout=timeout,
+                valid_status_codes=(201,),
+                params={"attach_to": server_id},
+            )
+        )
+
+    def detach(self, storage_id: int, timeout: int = 30):
+        """TODO"""
+        self.perform_request(
+            Request(
+                url=f"storages/{storage_id}/attachments",
+                method=Method.DELETE,
+                timeout=timeout,
+                valid_status_codes=(204,),
+                params=None,
+            )
         )
