@@ -1,3 +1,4 @@
 ---
 cherryservers_api_key: ${CHERRY_AUTH_TOKEN}
 cherryservers_project_id: ${CHERRY_PROJECT_ID}
+cherryservers_baremetal_server_id: ${CHERRY_BAREMETAL_SERVER_ID}
