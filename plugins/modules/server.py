@@ -24,7 +24,7 @@ description:
 options:
     state:
         description:
-            - The state of the server.
+            - Server state.
             - V(present) will ensure the server exists.
             - V(active) will ensure the server exists and is active.
             - V(absent) will ensure that the server doesn't exist.
@@ -40,7 +40,7 @@ options:
         type: int
     project_id:
         description:
-            - The ID of the project the server belongs to.
+            - ID of the project the server belongs to.
             - Required if server doesn't exist.
             - Required if server exists and O(id) is not provided.
             - Cannot be set for an existing server.
@@ -61,7 +61,7 @@ options:
             - Server OS partition size in GB.
             - Setting this option for an existing server requires O(allow_reinstall=true).
             - This option is not tracked in server state, so setting it for an existing server
-            - will always cause a re-install.
+              will always cause a re-install.
         type: int
     region:
         description:
@@ -86,7 +86,7 @@ options:
             - Extra floating IP IDs that are added to the server.
             - Cannot be updated after creation.
             - If you wish to add extra floating IPs to a server after it has been created,
-            - use the C(floating_ip) module instead.
+              use the C(floating_ip) module instead.
         type: list
         elements: str
     user_data:
@@ -94,7 +94,7 @@ options:
             - Base64 encoded user-data blob. It should be a bash or cloud-config script.
             - Setting this option for an existing server requires O(allow_reinstall=true).
             - This option is not tracked in server state, so setting it for an existing server
-            - will always cause a re-install.
+              will always cause a re-install.
         type: str
     tags:
         description:
@@ -111,7 +111,7 @@ options:
             - Elastic block storage ID.
             - Cannot be updated after creation.
             - If you wish to attach storage to a server after it has been created,
-            - use the C(storage) module instead.
+              use the C(storage) module instead.
         type: int
     active_timeout:
         description:
@@ -122,7 +122,7 @@ options:
         description:
             - Setting this to true will allow reinstalling the server.
             - This parameter is not saved in server state and you need to set it to V(true)
-            - every time you need to do so.
+              every time you need to do so.
             - Reinstalling will wipe all server data and make it temporarily inactive.
         type: bool
         default: false
@@ -301,9 +301,11 @@ cherryservers_server:
 
 import base64
 import binascii
+import random
+import string
 from typing import Optional
 from ansible.module_utils import basic as utils
-from ..module_utils import common, standard_module
+from ..module_utils import standard_module
 from ..module_utils.resource_managers.server_manager import ServerManager
 
 
@@ -359,7 +361,7 @@ class ServerModule(standard_module.StandardModule):
                 reinstall_req[k] = params[k]
 
         if reinstall_req:
-            reinstall_req["password"] = common.generate_password(16)
+            reinstall_req["password"] = generate_password(16)
             reinstall_req["type"] = "reinstall"
             req["reinstall"] = reinstall_req
 
@@ -463,6 +465,29 @@ class ServerModule(standard_module.StandardModule):
                 ("state", "absent", ("id", "project_id"), True),
             ],
         )
+
+
+def generate_password(length: int) -> str:
+    """Generate a random password.
+
+    The password is guaranteed to:
+        1. Be at least 8 characters long, but no longer than 24 characters.
+        2. Have at least one lowercase letter.
+        3. Have at least one uppercase letter, that is not the first character.
+        4. Have at least one digit, that is not the last character.
+        5. Not have any of ' " ` ! $ % & ; % #
+    """
+    length = max(8, length)
+    length = min(24, length)
+
+    lowercase = random.choice(string.ascii_lowercase)
+    uppercase = random.choice(string.ascii_uppercase)
+    digit = random.choice(string.digits)
+    remaining = "".join(
+        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+        for _1 in range(length - 3)
+    )
+    return f"{lowercase}{uppercase}{digit}{remaining}"
 
 
 def main():

@@ -21,33 +21,33 @@ description:
     - The module will attempt to find a key, that matches the provided options.
     - If multiple matching keys are found, the module fails.
     - Otherwise, depending on O(state) and if the key was found or not,
-    - it will be updated, deleted or a new key will be created.
+      it will be updated, deleted or a new key will be created.
 
 options:
     state:
         description:
-            - The state of the SSH key.
+            - SSH key state.
         default: present
         choices: ['absent', 'present']
         type: str
     key:
         description:
-            - The public SSH key.
+            - Public SSH key.
             - Required if the key doesn't exist.
         type: str
     label:
         description:
-            - The label of the SSH key.
+            - SSH key label.
             - Required if the key doesn't exist.
         type: str
     id:
         description:
-            - The ID of the SSH key.
+            - SSH key ID.
             - Ignored if O(state=present) and the key doesn't exist.
         type: int
     fingerprint:
         description:
-            - The fingerprint of the SSH key.
+            - SSH key fingerprint.
             - Ignored if O(state=present) and the key doesn't exist.
         type: str
 
@@ -120,8 +120,8 @@ cherryservers_sshkey:
             sample: "2024-08-06T07:56:16+00:00"
 """
 
-from ansible.module_utils import basic as utils
 from typing import Optional
+from ansible.module_utils import basic as utils
 from ..module_utils import standard_module
 from ..module_utils.resource_managers import sshkey_manager
 

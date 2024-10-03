@@ -50,8 +50,7 @@ options:
     required: false
   status:
     description:
-      - Populate inventory with instances that have this status,
-      - for example V(deployed).
+      - Populate inventory with instances that have this status, for example V(deployed).
     type: str
     required: false
   tags:

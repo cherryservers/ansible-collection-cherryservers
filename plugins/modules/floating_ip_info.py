@@ -112,7 +112,7 @@ cherryservers_floating_ips:
       type: str
       sample: "test."
     region:
-      description: Slug of the region which the IP belongs to.
+      description: Slug of the region to which the IP belongs to.
       returned: always
       type: str
       sample: "eu_nord_1"

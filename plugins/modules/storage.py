@@ -24,9 +24,9 @@ description:
 options:
     state:
         description:
-            - The state of the volume.
+            - Volume state.
             - Attaching and detaching volumes requires additional manual server configuration,
-            - see Cherry Servers EBS documentation for detailed instructions.
+              see Cherry Servers EBS documentation for detailed instructions.
         choices: ['attached', 'detached', 'absent']
         type: str
         default: attached

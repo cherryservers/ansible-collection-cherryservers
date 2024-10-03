@@ -21,6 +21,6 @@ class ModuleDocFragment:  # pylint: disable=missing-class-docstring, too-few-pub
         description: Complete reference for Cherry Servers public API.
         link: https://api.cherryservers.com/doc/
       - name: Cherry Servers authentication token generation
-        description: website link for generating API tokens.
-        link: https://portal.cherryservers.com/settings/ssh-keys
+        description: Generate Cherry Servers API tokens.
+        link: https://portal.cherryservers.com/settings/api-keys
     """

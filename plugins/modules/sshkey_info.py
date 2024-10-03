@@ -24,21 +24,21 @@ description:
 options:
     key:
         description:
-            - The public SSH key.
+            - Public SSH key.
         type: str
     label:
         description:
-            - The label of the SSH key.
+            - SSH key label.
         aliases: [name]
         type: str
     id:
         description:
-            - The ID of the SSH key.
+            - SSH key ID.
             - Set this to get a specific key (all other arguments are ignored).
         type: int
     fingerprint:
         description:
-            - The fingerprint of the SSH key.
+            - SSH key fingerprint.
         type: str
 
 

@@ -24,12 +24,12 @@ description:
 options:
     id:
         description:
-            - ID of the server.
+            - Server ID.
             - Required if O(project_id) is not provided.
         type: int
     project_id:
         description:
-            - The ID of the project the server belongs to.
+            - ID of the project the server belongs to.
             - Required if O(id) is not provided.
         type: int
     plan:
