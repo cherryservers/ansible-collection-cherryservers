@@ -96,7 +96,7 @@ from ..module_utils import normalizers
 
 
 class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
-    """Inventory plugin class for Cherry Servers."""
+    """Inventory plugin for Cherry Servers."""
 
     NAME = "cherryservers.cloud.cherryservers"
 

@@ -1,6 +1,6 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-"""TODO"""
+"""Manage Cherry Servers EBS resources."""
 from typing import List
 
 from .. import normalizers
@@ -8,20 +8,20 @@ from .resource_manager import ResourceManager, Request, Method
 
 
 class StorageManager(ResourceManager):
-    """TODO"""
+    """Manage Cherry Servers EBS resources."""
 
     GET_TIMEOUT = 20
 
     @property
     def name(self) -> str:
-        """TODO"""
+        """Cherry Servers EBS resource name"""
         return "storage"
 
     def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_storage(resource)
 
     def get_by_id(self, storage_id: int) -> dict:
-        """TODO"""
+        """Get a single Cherry Servers storage resource by its ID."""
         return self.perform_request(
             Request(
                 url=f"storages/{storage_id}",
@@ -33,7 +33,7 @@ class StorageManager(ResourceManager):
         )
 
     def get_by_project_id(self, project_id: int) -> List[dict]:
-        """TODO"""
+        """Get a list of Cherry Servers storage resources by project ID."""
         return self.perform_request(
             Request(
                 url=f"projects/{project_id}/storages",
@@ -45,7 +45,7 @@ class StorageManager(ResourceManager):
         )
 
     def create(self, project_id: str, params: dict, timeout: int = 30) -> dict:
-        """TODO"""
+        """Create a Cherry Servers storage resource."""
         return self.perform_request(
             Request(
                 url=f"projects/{project_id}/storages",
@@ -57,7 +57,7 @@ class StorageManager(ResourceManager):
         )
 
     def update(self, storage_id: int, params: dict, timeout: int = 30) -> dict:
-        """TODO"""
+        """Update a Cherry Servers storage resource."""
         return self.perform_request(
             Request(
                 url=f"storages/{storage_id}",
@@ -69,7 +69,7 @@ class StorageManager(ResourceManager):
         )
 
     def delete(self, storage_id: int, timeout: int = 30):
-        """TODO"""
+        """Delete a Cherry Servers storage resource."""
         self.perform_request(
             Request(
                 url=f"storages/{storage_id}",
@@ -81,7 +81,7 @@ class StorageManager(ResourceManager):
         )
 
     def attach(self, storage_id: int, server_id: int, timeout: int = 30) -> dict:
-        """TODO"""
+        """Attach a Cherry Servers storage resource to a server."""
         return self.perform_request(
             Request(
                 url=f"storages/{storage_id}/attachments",
@@ -93,7 +93,7 @@ class StorageManager(ResourceManager):
         )
 
     def detach(self, storage_id: int, timeout: int = 30):
-        """TODO"""
+        """Detach a Cherry Servers storage resource from a server."""
         self.perform_request(
             Request(
                 url=f"storages/{storage_id}/attachments",

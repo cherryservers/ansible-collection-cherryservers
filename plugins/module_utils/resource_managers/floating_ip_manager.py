@@ -1,6 +1,6 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-"""TODO"""
+"""Manage Cherry Servers floating IP resources."""
 from typing import Optional, List
 
 from .resource_manager import ResourceManager, Request, Method
@@ -8,20 +8,20 @@ from .. import normalizers
 
 
 class FloatingIPManager(ResourceManager):
-    """TODO"""
+    """Manage Cherry Servers floating IP resources."""
 
     GET_TIMEOUT = 30
 
     @property
     def name(self) -> str:
-        """TODO"""
+        """Cherry Servers floating IP resource name."""
         return "floating ip"
 
     def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_fip(resource)
 
     def create(self, project_id: int, params: dict, timeout: int = 30) -> dict:
-        """TODO"""
+        """Create a Cherry Servers floating IP resource."""
         return self.perform_request(
             Request(
                 method=Method.POST,
@@ -33,7 +33,7 @@ class FloatingIPManager(ResourceManager):
         )
 
     def delete(self, fip_id: str, timeout: int = 30):
-        """TODO"""
+        """Delete a Cherry Servers floating IP resource."""
         return self.perform_request(
             Request(
                 method=Method.DELETE,
@@ -45,7 +45,7 @@ class FloatingIPManager(ResourceManager):
         )
 
     def update(self, fip_id: str, params: dict, timeout: int = 30) -> dict:
-        """TODO"""
+        """Update a Cherry Servers floating IP resource."""
         return self.perform_request(
             Request(
                 method=Method.PUT,
@@ -57,7 +57,7 @@ class FloatingIPManager(ResourceManager):
         )
 
     def get_by_id(self, fip_id: str, timeout: int = 30) -> Optional[dict]:
-        """TODO"""
+        """Get a single Cherry Servers floating IP resource by ID."""
         return self.perform_request(
             Request(
                 method=Method.GET,
@@ -69,7 +69,7 @@ class FloatingIPManager(ResourceManager):
         )
 
     def get_by_project_id(self, project_id: str, timeout: int = 30) -> List[dict]:
-        """TODO"""
+        """Get a list of Cherry Servers floating IP resource by project ID."""
         return self.perform_request(
             Request(
                 method=Method.GET,

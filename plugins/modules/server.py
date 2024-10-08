@@ -310,7 +310,7 @@ from ..module_utils.resource_managers.server_manager import ServerManager
 
 
 class ServerModule(standard_module.StandardModule):
-    """Cherry Servers module for managing the server resource."""
+    """Cherry Servers server module."""
 
     def __init__(self):
         super().__init__()

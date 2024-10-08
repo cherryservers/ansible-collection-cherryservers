@@ -170,7 +170,7 @@ from ..module_utils.resource_managers import storage_manager
 
 
 class StorageModule(standard_module.StandardModule):
-    """Cherry Servers module for managing EBS resources."""
+    """Cherry Servers storage module."""
 
     def __init__(self):
         super().__init__()

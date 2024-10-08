@@ -182,7 +182,7 @@ from ..module_utils.resource_managers import floating_ip_manager
 
 
 class FloatingIPModule(standard_module.StandardModule):
-    """TODO"""
+    """Cherry Servers floating IP module."""
 
     def __init__(self):
         super().__init__()

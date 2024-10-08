@@ -127,7 +127,7 @@ from ..module_utils.resource_managers import sshkey_manager
 
 
 class SSHKeyModule(standard_module.StandardModule):
-    """TODO"""
+    """Cherry Servers SSH key module."""
 
     def __init__(self):
         super().__init__()

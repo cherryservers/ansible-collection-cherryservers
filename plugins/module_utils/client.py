@@ -3,7 +3,7 @@
 
 """Cherry Servers public API client.
 
-This utility module is used by ansible modules to access Cherry Servers public API.
+This module is used by ansible modules to access Cherry Servers public API.
 It uses the ansible provided standard utilities for working with HTTP(S).
 
 Classes:

@@ -1,19 +1,11 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-"""Cherry Servers resource normalizers.
-
-These normalizers help prepare various Cherry Servers resources for working with ansible modules.
-
-Functions:
-
-    normalize_ip(ip: dict): Normalize an IP resource.
-
-"""
+"""Cherry Servers resource normalizers."""
 
 
 def normalize_ssh_key(key: dict) -> dict:
-    """TODO"""
+    """Normalize a Cherry Servers SSH key resource."""
     return {
         "id": key.get("id", None),
         "label": key.get("label", None),

@@ -1,6 +1,6 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-"""TODO"""
+"""Manage Cherry Servers SSH key resources."""
 from typing import Optional, List
 
 from .resource_manager import ResourceManager, Request, Method
@@ -8,20 +8,20 @@ from .. import normalizers
 
 
 class SSHKeyManager(ResourceManager):
-    """TODO"""
+    """Manage Cherry Servers SSH key resources."""
 
     GET_TIMEOUT = 10
 
     @property
     def name(self) -> str:
-        """TODO"""
+        """Cherry Servers SSH key resource name."""
         return "ssh key"
 
     def _normalize(self, resource: dict) -> dict:
         return normalizers.normalize_ssh_key(resource)
 
     def get_all(self) -> List[dict]:
-        """TODO"""
+        """Get all Cherry Servers SSH key resources."""
         return self.perform_request(
             Request(
                 url="ssh-keys",
@@ -33,7 +33,7 @@ class SSHKeyManager(ResourceManager):
         )
 
     def get_by_id(self, key_id: int) -> Optional[dict]:
-        """TODO"""
+        """Get a single Cherry Servers SSH key resource by ID."""
         return self.perform_request(
             Request(
                 url=f"ssh-keys/{key_id}",
@@ -45,7 +45,7 @@ class SSHKeyManager(ResourceManager):
         )
 
     def create(self, params: dict, timeout: int = 15) -> dict:
-        """TODO"""
+        """Create a single Cherry Servers SSH key resource."""
         return self.perform_request(
             Request(
                 url="ssh-keys",
@@ -57,7 +57,7 @@ class SSHKeyManager(ResourceManager):
         )
 
     def update(self, key_id: int, params: dict, timeout: int = 15) -> dict:
-        """TODO"""
+        """Update a Cherry Servers SSH key resource."""
         return self.perform_request(
             Request(
                 url=f"ssh-keys/{key_id}",
@@ -69,7 +69,7 @@ class SSHKeyManager(ResourceManager):
         )
 
     def delete(self, key_id: int, timeout: int = 15):
-        """TODO"""
+        """Delete a Cherry Servers SSH key resource."""
         self.perform_request(
             Request(
                 url=f"ssh-keys/{key_id}",
