@@ -44,7 +44,9 @@ environment variables.
 ```
 
 ## Included content
+
 ### Modules
+
 ```text
 server
 server_info
@@ -57,6 +59,7 @@ storage_info
 ```
 
 ### Inventory plugins
+
 ```cherryservers```
 
 ## Documentation
@@ -91,16 +94,28 @@ This file must declare `cherryservers_api_key`, `cherryservers_project_id` and, 
 `cherryservers_baremetal_server_id`(used for storage testing).
 
 You can run the whole suite of integration tests with, for example:
+
 ```shell
 ansible-test integration --docker fedora39 -vvv
 ```
 
 You can also run integration tests for specific modules, for example:
+
 ```shell
 ansible-test integration server --docker fedora39 -vvv
 ```
 
-More information on Ansible collection testing can be found [here](https://docs.ansible.com/ansible/latest/dev_guide/developing_collections_testing.html).
+More information on Ansible collection testing can be
+found [here](https://docs.ansible.com/ansible/latest/dev_guide/developing_collections_testing.html).
 
 ## Release notes
-TBD
+
+See the [changelog](CHANGELOG.md).
+
+### Release process
+
+1. Update `_VERSION` in `plugins/module_utils/_version.py`.
+2. Update the human-readable `CHANGELOG.md`.
+3. Update version in `galaxy.yml`.
+4. If there are new modules or plugins, update the [Included content](#included-content) section of this document.
+5. Tag the new version and push it.
