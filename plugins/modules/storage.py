@@ -166,7 +166,7 @@ cherryservers_storage:
 from typing import Optional
 from ansible.module_utils import basic as utils
 from ..module_utils import standard_module
-from ..module_utils.resource_managers import storage_manager
+from ..module_utils.resource_managers import storage_manager, server_manager
 
 
 class StorageModule(standard_module.StandardModule):
@@ -246,6 +246,19 @@ class StorageModule(standard_module.StandardModule):
             self._module.fail_json(
                 "can't use target_server_id with detached storage state"
             )
+
+        if params["target_server_id"]:
+            srv_man = server_manager.ServerManager(self._module)
+            srv = srv_man.get_by_id(params["target_server_id"])
+            if srv:
+                if srv["storage_id"]:
+                    self._module.fail_json(
+                        msg=f"target server {params['target_server_id']} already has storage attached"
+                    )
+            else:
+                self._module.fail_json(
+                    msg=f"server {params['target_server_id']} does not exist"
+                )
 
     def _perform_creation(self) -> dict:
         params = self._module.params
