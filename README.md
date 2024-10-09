@@ -2,6 +2,7 @@
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![codecov](https://codecov.io/gh/caliban0/cherryservers-ansible-collection/graph/badge.svg?token=WQ8P3OKBCZ)](https://codecov.io/gh/caliban0/cherryservers-ansible-collection)
+[![galaxy](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv3%2Fplugin%2Fansible%2Fcontent%2Fpublished%2Fcollections%2Findex%2Fcherryservers%2Fcloud%2F&query=highest_version.version&label=galaxy)](https://galaxy.ansible.com/ui/repo/published/cherryservers/cloud/)
 
 Cherry Servers Ansible collection for managing infrastructure and resources.
 
@@ -35,12 +36,28 @@ environment variables.
   hosts: localhost
   tasks:
     - name: Create a server
-      local.cherryservers.server:
+      cloud.cherryservers.server:
         project_id: 216063
         region: "eu_nord_1"
         plan: "cloud_vps_1"
         auth_token: "my-auth-token-goes-here"
 ```
+
+## Included content
+### Modules
+```text
+server
+server_info
+floating_ip
+floating_ip_info
+sshkey
+sshkey_info
+storage
+storage_info
+```
+
+### Inventory plugins
+```cherryservers```
 
 ## Documentation
 
