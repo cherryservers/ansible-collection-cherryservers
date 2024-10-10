@@ -37,7 +37,7 @@ options:
     team_id:
         description:
             - ID of the team the project belongs to.
-            - Cannot be updated for an existing project.
+            - Cannot be updated after creation.
             - Required if project exists and O(id) is not provided.
             - Required if project doesn't exist.
         type: int

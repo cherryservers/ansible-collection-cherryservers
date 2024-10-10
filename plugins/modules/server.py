@@ -34,8 +34,7 @@ options:
     id:
         description:
             - ID of the server.
-            - Used to identify existing servers.
-            - Cannot be set.
+            - Cannot be set. Used to identify existing servers.
             - Required if server exists and O(hostname) is not provided.
         type: int
     project_id:
@@ -43,13 +42,13 @@ options:
             - ID of the project the server belongs to.
             - Required if server doesn't exist.
             - Required if server exists and O(id) is not provided.
-            - Cannot be set for an existing server.
+            - Cannot updated after creation.
         type: int
     plan:
         description:
             - Slug of the server plan.
             - Required if server doesn't exist.
-            - Cannot be set for an existing server.
+            - Cannot be updated after creation.
         type: str
     image:
         description:
@@ -67,7 +66,7 @@ options:
         description:
             - Slug of the server region.
             - Required if server doesn't exist.
-            - Cannot be set for an existing server.
+            - Cannot be updated after creation.
         type: str
     hostname:
         description:

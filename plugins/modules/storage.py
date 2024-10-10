@@ -33,20 +33,20 @@ options:
     id:
         description:
             - ID of the volume.
-            - Used to identify existing volumes.
+            - Cannot be set. Used to identify existing projects.
             - Required if volume exists.
         type: int
     project_id:
         description:
             - ID of the project the volume belongs to.
             - Required if volume doesn't exist.
-            - Cannot be set for an existing volume.
+            - Cannot be updated after creation.
         type: int
     region:
         description:
             - Slug of the volume region.
             - Required if volume doesn't exist.
-            - Cannot be set for an existing volume.
+            - Cannot be updated after creation.
         type: str
     size:
         description:

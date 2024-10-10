@@ -30,20 +30,20 @@ options:
     id:
         description:
             - ID of the floating IP.
-            - Used to identify existing floating IPs.
+            - Cannot be set. Used to identify existing floating IPs.
             - Required if floating IP exists.
         type: str
     project_id:
         description:
             - ID of the project the floating IP belongs to.
             - Required if floating IP doesn't exist.
-            - Cannot be set for an existing floating IP.
+            - Cannot be updated after creation.
         type: int
     region:
         description:
             - Slug of the floating IP region.
             - Required if floating IP doesn't exist.
-            - Cannot be set for an existing floating IP.
+            - Cannot be updated after creation.
         type: str
     route_ip_id:
         description:
@@ -53,7 +53,7 @@ options:
     target_server_id:
         description:
             - ID of the server to which the floating IP is attached.
-            - Set V(0) to unattach.
+            - Set V(0) to un-attach.
             - Mutually exclusive with O(route_ip_id).
         type: int
     ptr_record:
@@ -68,7 +68,7 @@ options:
     ddos_scrubbing:
         description:
             - If true, DDOS scrubbing protection will be applied in real-time.
-            - Cannot be set for an existing floating IP.
+            - Cannot be updated after creation.
         default: false
         type: bool
     tags:
