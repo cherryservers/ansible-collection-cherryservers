@@ -188,7 +188,7 @@ class FloatingIPModule(info_module.InfoModule):
 
     @property
     def name(self) -> str:
-        """Cherry Servers resource name."""
+        """Cherry Servers floating IP info module name."""
         return "cherryservers_floating_ips"
 
     @property

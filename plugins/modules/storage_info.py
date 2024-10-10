@@ -180,7 +180,7 @@ class StorageInfoModule(info_module.InfoModule):
 
     @property
     def name(self) -> str:
-        """Storage resource name."""
+        """Storage info module name."""
         return "cherryservers_storages"
 
     @property

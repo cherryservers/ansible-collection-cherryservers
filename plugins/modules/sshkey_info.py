@@ -134,7 +134,7 @@ class SSHKeyInfoModule(info_module.InfoModule):
 
     @property
     def name(self) -> str:
-        """SSH key resource name."""
+        """SSH key info module name."""
         return "cherryservers_sshkeys"
 
     @property

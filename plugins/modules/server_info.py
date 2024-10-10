@@ -244,7 +244,7 @@ class ServerInfoModule(info_module.InfoModule):
 
     @property
     def name(self) -> str:
-        """Server resource name"""
+        """Server info module name."""
         return "cherryservers_servers"
 
     @property
