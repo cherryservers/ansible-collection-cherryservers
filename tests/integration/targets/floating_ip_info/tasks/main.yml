@@ -173,17 +173,6 @@
           - result.cherryservers_floating_ips | list | count == 1
           - result is not changed
   always:
-    - name: delete server
-      cherryservers.cloud.server:
-        id: "{{ server.cherryservers_server.id }}"
-        state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
-      register: result
-    - name: verify delete first server
-      ansible.builtin.assert:
-        that:
-          - result is changed
-
     - name: delete fip
       cherryservers.cloud.floating_ip:
         id: "{{ fip.cherryservers_floating_ip.id }}"
@@ -191,6 +180,17 @@
         auth_token: "{{ cherryservers_api_key }}"
       register: result
     - name: verify delete fip
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: delete server
+      cherryservers.cloud.server:
+        id: "{{ server.cherryservers_server.id }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify delete first server
       ansible.builtin.assert:
         that:
           - result is changed
