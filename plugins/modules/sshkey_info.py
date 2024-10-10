@@ -14,7 +14,7 @@ module: sshkey_info
 
 short_description: Gather information about your Cherry Servers SSH keys
 
-version_added: "0.1.0"
+version_added: "1.0.0"
 
 description:
   - Gather information about your Cherry Servers SSH keys.

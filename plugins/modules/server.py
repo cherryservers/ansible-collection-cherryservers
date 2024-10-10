@@ -14,7 +14,7 @@ module: server
 
 short_description: Create and manage servers on Cherry Servers
 
-version_added: "0.1.0"
+version_added: "1.0.0"
 
 description:
     - Create, update and delete servers on Cherry Servers.

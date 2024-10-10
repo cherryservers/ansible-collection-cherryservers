@@ -14,7 +14,7 @@ module: sshkey
 
 short_description: Create and manage SSH keys on Cherry Servers
 
-version_added: "0.1.0"
+version_added: "1.0.0"
 
 description:
     - Create, update and delete SSH keys on Cherry Servers.

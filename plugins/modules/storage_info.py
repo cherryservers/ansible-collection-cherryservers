@@ -14,7 +14,7 @@ module: storage_info
 
 short_description: Gather information about your Cherry Servers EBS volumes
 
-version_added: "0.1.0"
+version_added: "1.0.0"
 
 description:
   - Gather information about your Cherry Servers elastic block storage volumes.

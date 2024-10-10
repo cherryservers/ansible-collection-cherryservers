@@ -14,7 +14,7 @@ module: floating_ip
 
 short_description: Create and manage floating IPs on Cherry Servers
 
-version_added: "0.1.0"
+version_added: "1.0.0"
 
 description:
     - Create, update and delete floating IPs on Cherry Servers.
