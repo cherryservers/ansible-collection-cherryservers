@@ -1,0 +1,243 @@
+---
+- name: Run tests
+  block:
+    - name: test create project missing parameter
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: project
+      ignore_errors: true
+    - name: verify create project missing parameter
+      ansible.builtin.assert:
+        that:
+          - project is failed
+
+    - name: test create project with check mode
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "{{ project_name }}"
+      register: project
+      check_mode: true
+    - name: verify create project with check mode
+      ansible.builtin.assert:
+        that:
+          - project is changed
+
+    - name: test that no project actually created
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ project.cherryservers_project.id }}"
+      register: result
+      ignore_errors: true
+    - name: verify that project actually created
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: test create project
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "{{ project_name }}"
+      register: project
+    - name: verify create project
+      ansible.builtin.assert:
+        that:
+          - project is changed
+
+    - name: test project actually created
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: verify that project actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+          - result is not changed
+
+    - name: test project creation idempotency with check mode
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "{{ project_name }}"
+      register: result
+      check_mode: true
+    - name: verify project creation idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test project creation idempotency
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "{{ project_name }}"
+      register: result
+    - name: verify project creation idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test project update with check mode
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        name: "{{ project_name_updated }}"
+        bgp: True
+        auth_token: "{{ cherryservers_api_key }}"
+      check_mode: true
+      register: result
+    - name: verify project update with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test no update project actually happened
+      cherryservers.cloud.project_info:
+        bgp: True
+        team_id: "{{ cherryservers_team_id }}"
+        name: "{{ project_name_updated }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify no update project actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 0
+          - result is not changed
+
+    - name: test project update with check mode
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        name: "{{ project_name_updated }}"
+        bgp: True
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify project update
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test update project actually happened
+      cherryservers.cloud.project_info:
+        bgp: True
+        name: "{{ project_name_updated }}"
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify update project actually happened
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+          - result is not changed
+
+    - name: test project update idempotency with check mode
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        name: "{{ project_name_updated }}"
+        bgp: True
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      check_mode: true
+    - name: verify project update idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test project update idempotency
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        name: "{{ project_name_updated }}"
+        bgp: True
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify project update idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test project update by name
+      cherryservers.cloud.project:
+        name: "{{ project_name_updated }}"
+        bgp: False
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify project update by name
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test delete project with check mode
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+      check_mode: true
+    - name: verify delete project with check mode
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test that no project actually deleted
+      cherryservers.cloud.project_info:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify that no project actually deleted
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+
+    - name: test delete project
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify delete project
+      ansible.builtin.assert:
+        that:
+          - result is changed
+
+    - name: test that project actually deleted
+      cherryservers.cloud.project_info:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+      ignore_errors: true
+    - name: verify that project actually deleted
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: test delete project idempotency with check mode
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+      check_mode: true
+    - name: verify delete project idempotency with check mode
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+    - name: test delete project idempotency
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
+      register: result
+    - name: verify delete project idempotency
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+
+  always:
+    - name: delete test project
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent

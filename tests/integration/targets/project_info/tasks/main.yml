@@ -1,0 +1,106 @@
+---
+- name: Run tests
+  block:
+    - name: create project
+      cherryservers.cloud.project:
+        name: "{{ project_name }}"
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: project
+    - name: verify create project
+      ansible.builtin.assert:
+        that:
+          - project is changed
+
+    - name: test no options info gathering
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: result
+    - name: verify no options info gathering
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count >= 1
+          - result is not changed
+
+    - name: test no options info gathering with check mode
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+      check_mode: true
+      register: result
+    - name: verify no options info gathering
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count >= 1
+          - result is not changed
+
+    - name: test gather project by id
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: verify gather project by id
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+          - result is not changed
+
+    - name: test gather project by id wrong
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "123456"
+      register: result
+      ignore_errors: true
+    - name: verify gather project by id wrong
+      ansible.builtin.assert:
+        that:
+          result is failed
+
+    - name: test gather project by name
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        name: "{{ project.cherryservers_project.name }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: result
+    - name: verify gather project by name
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+          - result is not changed
+
+    - name: test gather project by name wrong
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        name: "{{ project.cherryservers_project.name }}wrong"
+        team_id: "{{ cherryservers_team_id }}"
+      register: result
+    - name: verify gather project by name wrong
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 0
+          - result is not changed
+
+    - name: test gather project with multiple options
+      cherryservers.cloud.project_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ project.cherryservers_project.id }}"
+        name: "{{ project.cherryservers_project.name }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: result
+    - name: verify gather project with multiple options
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_projects | list | count == 1
+          - result is not changed
+  always:
+    - name: delete project
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        state: "absent"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: result
+    - name: verify delete project
+      ansible.builtin.assert:
+        that:
+          - result is changed

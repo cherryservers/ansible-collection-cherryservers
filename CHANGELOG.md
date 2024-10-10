@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modules `sshkey` and `sshkey_info` for managing SSH key resources.
 - Modules `floating_ip` and `floating_ip_info` for managing floating IP resources.
 - Modules `storage` and `storage_info` for managing EBS resources.
+- Modules `project` and `project_info` for managing project resources.
 - `cherryservers` inventory plugin.
 
 [unreleased]: https://github.com/caliban0/cherryservers-ansible-collection/tree/main

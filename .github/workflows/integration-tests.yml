@@ -23,6 +23,8 @@ jobs:
           - floating_ip
           - storage_info
           - storage
+          - project
+          - project_info
     steps:
       - name: Perform testing
         uses: ansible-community/ansible-test-gh-action@release/v1
@@ -31,6 +33,7 @@ jobs:
             CHERRY_AUTH_TOKEN=${{ secrets.CHERRY_AUTH_TOKEN }}
             CHERRY_PROJECT_ID=${{ secrets.CHERRY_PROJECT_ID }}
             CHERRY_BAREMETAL_SERVER_ID=${{ secrets.CHERRY_BAREMETAL_SERVER_ID }}
+            CHERRY_TEAM_ID=${{ secrets.CHERRY_TEAM_ID }}
             ./tests/utils/render.sh
             tests/integration/integration_config.yml.template
             > tests/integration/integration_config.yml

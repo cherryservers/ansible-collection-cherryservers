@@ -56,6 +56,8 @@ sshkey
 sshkey_info
 storage
 storage_info
+project
+project_info
 ```
 
 ### Inventory plugins

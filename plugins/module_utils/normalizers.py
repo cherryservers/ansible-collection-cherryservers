@@ -95,3 +95,13 @@ def normalize_server(
         "storage_id": server.get("storage", {}).get("id", None),
         "tags": server.get("tags", {}),
     }
+
+
+def normalize_project(project: dict) -> dict:
+    """Normalize Cherry Servers project resource."""
+
+    return {
+        "id": project.get("id", None),
+        "name": project.get("name", None),
+        "bgp": project.get("bgp", None),
+    }
