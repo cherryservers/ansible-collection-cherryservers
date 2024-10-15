@@ -36,7 +36,7 @@ environment variables.
   hosts: localhost
   tasks:
     - name: Create a server
-      cloud.cherryservers.server:
+      cherryservers.cloud.server:
         project_id: 216063
         region: "eu_nord_1"
         plan: "cloud_vps_1"
