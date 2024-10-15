@@ -1,0 +1,35 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: Create and manage floating IPs on Cherry Servers.
+      name: floating_ip
+      namespace: ''
+    - description: Gather information about your Cherry Servers floating IPs.
+      name: floating_ip_info
+      namespace: ''
+    - description: Create and manage projects on Cherry Servers.
+      name: project
+      namespace: ''
+    - description: Gather information about your Cherry Servers projects.
+      name: project_info
+      namespace: ''
+    - description: Create and manage servers on Cherry Servers.
+      name: server
+      namespace: ''
+    - description: Gather information about your Cherry Servers servers.
+      name: server_info
+      namespace: ''
+    - description: Create and manage SSH keys on Cherry Servers.
+      name: sshkey
+      namespace: ''
+    - description: Gather information about your Cherry Servers SSH keys.
+      name: sshkey_info
+      namespace: ''
+    - description: Create and manage elastic block storage volumes on Cherry Servers.
+      name: storage
+      namespace: ''
+    - description: Gather information about your Cherry Servers EBS volumes.
+      name: storage_info
+      namespace: ''
+    release_date: '2024-10-15'
