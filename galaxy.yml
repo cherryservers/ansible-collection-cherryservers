@@ -42,16 +42,16 @@ tags:
 dependencies: {}
 
 # The URL of the originating SCM repository
-repository: https://github.com/caliban0/cherryservers-ansible-collection
+repository: https://github.com/cherryservers/ansible-collection-cherryservers
 
 # The URL to any online docs
-documentation: https://github.com/caliban0/cherryservers-ansible-collection/blob/main/README.md
+documentation: https://github.com/cherryservers/ansible-collection-cherryservers/blob/main/README.md
 
 # The URL to the homepage of the collection/project
-homepage: https://github.com/caliban0/cherryservers-ansible-collection
+homepage: https://github.com/cherryservers/ansible-collection-cherryservers
 
 # The URL to the collection issue tracker
-issues: https://github.com/caliban0/cherryservers-ansible-collection/issues
+issues: https://github.com/cherryservers/ansible-collection-cherryservers/issues
 
 # A list of file glob-like patterns used to filter any files or directories that should not be included in the build
 # artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This

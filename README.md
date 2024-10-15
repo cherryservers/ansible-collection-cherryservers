@@ -1,7 +1,7 @@
 # Cherry Servers Ansible Collection
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![codecov](https://codecov.io/gh/caliban0/cherryservers-ansible-collection/graph/badge.svg?token=WQ8P3OKBCZ)](https://codecov.io/gh/caliban0/cherryservers-ansible-collection)
+[![codecov](https://codecov.io/gh/cherryservers/ansible-collection-cherryservers/graph/badge.svg?token=ct1qQJ7zmp)](https://codecov.io/gh/cherryservers/ansible-collection-cherryservers)
 [![galaxy](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv3%2Fplugin%2Fansible%2Fcontent%2Fpublished%2Fcollections%2Findex%2Fcherryservers%2Fcloud%2F&query=highest_version.version&label=galaxy)](https://galaxy.ansible.com/ui/repo/published/cherryservers/cloud/)
 
 Cherry Servers Ansible collection for managing infrastructure and resources.
