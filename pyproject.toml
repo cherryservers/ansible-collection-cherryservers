@@ -13,7 +13,7 @@ ansible-core = "^2.14"
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
 pylint = "^3.2.7"
-antsibull-changelog = "^0.30.0"
+antsibull-changelog = "^0.31.1"
 
 [build-system]
 requires = ["poetry-core"]
