@@ -65,12 +65,6 @@ options:
             - Relative DNS name for the IP address.
             - Resulting FQDN will be '<relative-dns-name>.cloud.cherryservers.net' and must be globally unique.
         type: str
-    ddos_scrubbing:
-        description:
-            - If true, DDOS scrubbing protection will be applied in real-time.
-            - Cannot be updated after creation.
-        default: false
-        type: bool
     tags:
         description:
             - Tags of the floating IP.
@@ -271,7 +265,6 @@ class FloatingIPModule(standard_module.StandardModule):
                 "targeted_to": params["target_server_id"],
                 "ptr_record": params["ptr_record"],
                 "a_record": params["a_record"],
-                "ddos_scrubbing": params["ddos_scrubbing"],
                 "tags": params["tags"],
             },
         )
@@ -307,7 +300,6 @@ class FloatingIPModule(standard_module.StandardModule):
             "target_server_id": {"type": "int"},
             "ptr_record": {"type": "str"},
             "a_record": {"type": "str"},
-            "ddos_scrubbing": {"type": "bool", "default": False},
             "tags": {
                 "type": "dict",
             },
