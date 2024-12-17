@@ -10,7 +10,7 @@ from .. import normalizers
 class SSHKeyManager(ResourceManager):
     """Manage Cherry Servers SSH key resources."""
 
-    GET_TIMEOUT = 10
+    DEFAULT_TIMEOUT = 120
 
     @property
     def name(self) -> str:
@@ -26,7 +26,7 @@ class SSHKeyManager(ResourceManager):
             Request(
                 url="ssh-keys",
                 method=Method.GET,
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 valid_status_codes=(200,),
                 params=None,
             )
@@ -38,13 +38,13 @@ class SSHKeyManager(ResourceManager):
             Request(
                 url=f"ssh-keys/{key_id}",
                 method=Method.GET,
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 valid_status_codes=(200,),
                 params=None,
             )
         )
 
-    def create(self, params: dict, timeout: int = 15) -> dict:
+    def create(self, params: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
         """Create a single Cherry Servers SSH key resource."""
         return self.perform_request(
             Request(
@@ -56,7 +56,7 @@ class SSHKeyManager(ResourceManager):
             )
         )
 
-    def update(self, key_id: int, params: dict, timeout: int = 15) -> dict:
+    def update(self, key_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
         """Update a Cherry Servers SSH key resource."""
         return self.perform_request(
             Request(
@@ -68,7 +68,7 @@ class SSHKeyManager(ResourceManager):
             )
         )
 
-    def delete(self, key_id: int, timeout: int = 15):
+    def delete(self, key_id: int, timeout: int = DEFAULT_TIMEOUT):
         """Delete a Cherry Servers SSH key resource."""
         self.perform_request(
             Request(
