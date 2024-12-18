@@ -371,12 +371,12 @@ class ServerModule(standard_module.StandardModule):
         if requests.get("reinstall", None):
             if not params["allow_reinstall"]:
                 self._module.fail_json(msg="provided options require server reinstall")
-            self._server_manager.reinstall_server(
+            server = self._server_manager.reinstall_server(
                 resource["id"],
                 requests["reinstall"],
             )
             if params["state"] == "active":
-                self._server_manager.wait_for_active(resource, params["active_timeout"])
+                self._server_manager.wait_for_active(server, params["active_timeout"])
 
         if requests.get("basic", None):
             self._server_manager.update_server(resource["id"], requests["basic"])

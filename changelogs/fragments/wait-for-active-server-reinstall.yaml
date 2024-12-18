@@ -1,0 +1,2 @@
+bugfixes:
+  - Wait for server to become active, if ``state`` is set to active, on server reinstall.
