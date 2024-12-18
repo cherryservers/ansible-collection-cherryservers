@@ -10,14 +10,14 @@ server_update_by_hostname_tags:
   env: "ansible-server-update-test-by-hostname"
 
 # For full config server test.
-server_image: "fedora_39_64bit"
+server_image: "debian_12_64bit"
 server_hostname: "ansible-server-full-config-test"
 server_tags:
   env: "ansible-server-full-config-test"
 server_active_timeout: 600
 server_user_data: "I2Nsb3VkLWNvbmZpZwp3cml0ZV9maWxlczoKICAtIHBhdGg6IC9oZWxsb193b3JsZC50eHQKICAgIGNvbnRlbnQ6IHwKICAgICAgSGVsbG8gV29ybGQKCnJ1bmNtZDoKICAtIGVjaG8gIkZpbGUgY3JlYXRlZCBzdWNjZXNzZnVsbHkhIgoK"
 
-server_reinstall_image: "ubuntu_22_04"
+server_reinstall_image: "ubuntu_24_04_64bit"
 
 fake_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFa0 example@example.com"
 fake_key_label: "ansible-server-test-key"
