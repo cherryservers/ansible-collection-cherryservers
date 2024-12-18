@@ -11,7 +11,7 @@ from .resource_manager import ResourceManager, Request, Method
 class ServerManager(ResourceManager):
     """Manage Cherry Servers server resources."""
 
-    GET_TIMEOUT = 20
+    DEFAULT_TIMEOUT = 120
 
     @property
     def name(self) -> str:
@@ -28,7 +28,7 @@ class ServerManager(ResourceManager):
                 method=Method.GET,
                 url=f"servers/{server_id}",
                 valid_status_codes=(200, 404),
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 params=None,
             )
         )
@@ -40,12 +40,14 @@ class ServerManager(ResourceManager):
                 method=Method.GET,
                 url=f"projects/{project_id}/servers",
                 valid_status_codes=(200,),
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 params=None,
             )
         )
 
-    def create_server(self, project_id: int, params: dict, timeout: int = 1800) -> dict:
+    def create_server(
+        self, project_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT
+    ) -> dict:
         """Create a Cherry Servers server resource."""
         return self.perform_request(
             Request(
@@ -57,7 +59,9 @@ class ServerManager(ResourceManager):
             )
         )
 
-    def update_server(self, server_id: int, params: dict, timeout: int = 180) -> dict:
+    def update_server(
+        self, server_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT
+    ) -> dict:
         """Update a Cherry Servers server resource."""
         return self.perform_request(
             Request(
@@ -70,7 +74,7 @@ class ServerManager(ResourceManager):
         )
 
     def reinstall_server(
-        self, server_id: int, params: dict, timeout: int = 1800
+        self, server_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT
     ) -> dict:
         """Reinstall a Cherry Servers server resource."""
         return self.perform_request(
@@ -83,7 +87,7 @@ class ServerManager(ResourceManager):
             )
         )
 
-    def delete_server(self, server_id: int, timeout: int = 30):
+    def delete_server(self, server_id: int, timeout: int = DEFAULT_TIMEOUT):
         """Delete a Cherry Servers server resource."""
         self.perform_request(
             Request(

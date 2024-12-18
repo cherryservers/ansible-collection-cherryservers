@@ -10,7 +10,7 @@ from .. import normalizers
 class ProjectManager(ResourceManager):
     """Manage Cherry Servers project resources."""
 
-    GET_TIMEOUT = 10
+    DEFAULT_TIMEOUT = 120
 
     @property
     def name(self) -> str:
@@ -26,7 +26,7 @@ class ProjectManager(ResourceManager):
             Request(
                 url=f"teams/{team_id}/projects",
                 method=Method.GET,
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 valid_status_codes=(200,),
                 params=None,
             )
@@ -38,13 +38,15 @@ class ProjectManager(ResourceManager):
             Request(
                 url=f"projects/{key_id}",
                 method=Method.GET,
-                timeout=self.GET_TIMEOUT,
+                timeout=self.DEFAULT_TIMEOUT,
                 valid_status_codes=(200, 404),
                 params=None,
             )
         )
 
-    def create(self, team_id: int, params: dict, timeout: int = 15) -> dict:
+    def create(
+        self, team_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT
+    ) -> dict:
         """Create a single Cherry Servers project resource."""
         return self.perform_request(
             Request(
@@ -56,7 +58,7 @@ class ProjectManager(ResourceManager):
             )
         )
 
-    def update(self, key_id: int, params: dict, timeout: int = 15) -> dict:
+    def update(self, key_id: int, params: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
         """Update a Cherry Servers project resource."""
         return self.perform_request(
             Request(
@@ -68,7 +70,7 @@ class ProjectManager(ResourceManager):
             )
         )
 
-    def delete(self, key_id: int, timeout: int = 15):
+    def delete(self, key_id: int, timeout: int = DEFAULT_TIMEOUT):
         """Delete a Cherry Servers project resource."""
         self.perform_request(
             Request(
