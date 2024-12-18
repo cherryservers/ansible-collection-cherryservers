@@ -253,6 +253,6 @@
         state: absent
     - name: delete floating ip
       cherryservers.cloud.floating_ip:
-        id: [ "{{ fip.cherryservers_floating_ip.id }}" ]
+        id: "{{ fip.cherryservers_floating_ip.id }}"
         auth_token: "{{ cherryservers_api_key }}"
         state: absent

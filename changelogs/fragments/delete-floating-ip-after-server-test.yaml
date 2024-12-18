@@ -1,0 +1,3 @@
+bugfixes:
+  -
+    test - Properly delete floating IP after using it for server integration tests.
