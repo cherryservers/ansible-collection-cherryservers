@@ -4,6 +4,18 @@ Cherryservers.Cloud Release Notes
 
 .. contents:: Topics
 
+v1.1.0
+======
+
+Bugfixes
+--------
+
+- Increase default request timeout lengths, the previous ones would often cause unnecessary timeouts.
+- On server reinstall, set SSH keys and images to their previous values, if they haven't been changed or are unprovided.
+- Wait for server to become active, if ``state`` is set to active, on server reinstall.
+- remove ddos_scrubbing option from the floating_ip module, since upstream API changes have made it unusable.
+- test - Properly delete floating IP after using it for server integration tests.
+
 v1.0.0
 ======
 

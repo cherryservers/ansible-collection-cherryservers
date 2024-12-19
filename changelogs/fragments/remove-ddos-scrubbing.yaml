@@ -1,2 +1,0 @@
-bugfixes:
-  - remove ddos_scrubbing option from the floating_ip module, since upstream API changes have made it unusable.
