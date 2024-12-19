@@ -1,4 +1,0 @@
-bugfixes:
-  -
-    On server reinstall, set SSH keys and images to their previous values,
-    if they haven't been changed or are unprovided.

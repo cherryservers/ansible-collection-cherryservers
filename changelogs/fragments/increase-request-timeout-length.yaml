@@ -1,4 +1,0 @@
-bugfixes:
-  -
-    Increase default request timeout lengths, the previous ones would often cause
-    unnecessary timeouts.

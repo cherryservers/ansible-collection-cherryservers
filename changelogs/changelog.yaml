@@ -33,3 +33,22 @@ releases:
       name: storage_info
       namespace: ''
     release_date: '2024-10-15'
+  1.1.0:
+    changes:
+      bugfixes:
+      - Increase default request timeout lengths, the previous ones would often cause
+        unnecessary timeouts.
+      - On server reinstall, set SSH keys and images to their previous values, if
+        they haven't been changed or are unprovided.
+      - Wait for server to become active, if ``state`` is set to active, on server
+        reinstall.
+      - remove ddos_scrubbing option from the floating_ip module, since upstream API
+        changes have made it unusable.
+      - test - Properly delete floating IP after using it for server integration tests.
+    fragments:
+    - delete-floating-ip-after-server-test.yaml
+    - increase-request-timeout-length.yaml
+    - remove-ddos-scrubbing.yaml
+    - retain-ssh-keys-and-images-on-server-reinstall.yaml
+    - wait-for-active-server-reinstall.yaml
+    release_date: '2024-12-19'
