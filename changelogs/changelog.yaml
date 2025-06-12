@@ -52,3 +52,14 @@ releases:
     - retain-ssh-keys-and-images-on-server-reinstall.yaml
     - wait-for-active-server-reinstall.yaml
     release_date: '2024-12-19'
+  2.0.0:
+    changes:
+      breaking_changes:
+      - Drop support for Python 3.9. This is required to drop support for ansible-core
+        2.15, which is at EOF.
+      - Drop support for ansible-core 2.16. This drops support for Python 3.9 as well,
+        since ansible-core 2.16 requires at least 3.10.
+    fragments:
+    - drop-support-for-ansible-2.16.yaml
+    - drop-support-for-python-3.9.yaml
+    release_date: '2025-06-12'
