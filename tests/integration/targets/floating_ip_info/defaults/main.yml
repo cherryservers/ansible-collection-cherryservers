@@ -1,4 +1,4 @@
-fip_region: "eu_nord_1"
+fip_region: "LT-Siauliai"
 fip_tags:
   env: "ansible-fip-info-test"
 

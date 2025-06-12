@@ -1,4 +1,4 @@
-fip_region: "eu_nord_1"
+fip_region: "LT-Siauliai"
 server_plan: "B1-1-1gb-20s-shared"
 
 fip_tags_basic:

@@ -1,4 +1,4 @@
-server_region: "eu_nord_1"
+server_region: "LT-Siauliai"
 server_plan: "B1-1-1gb-20s-shared"
 
 server_tags:
