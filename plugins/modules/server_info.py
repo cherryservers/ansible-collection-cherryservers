@@ -114,7 +114,7 @@ cherryservers_servers:
       description: Server OS image slug.
       returned: always
       type: str
-      sample: "fedora_39_64bit"
+      sample: "debian_12_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always

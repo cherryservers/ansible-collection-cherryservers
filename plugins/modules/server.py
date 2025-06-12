@@ -153,7 +153,7 @@ EXAMPLES = r"""
     project_id: 213668
     region: "LT-Siauliai"
     plan: "B1-1-1gb-20s-shared"
-    image: "fedora_39_64bit"
+    image: "debian_12_64bit"
     ssh_keys: [1234]
     hostname: "cantankerous-crow"
     extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
@@ -184,7 +184,7 @@ EXAMPLES = r"""
     tags:
       env: "test-upd"
     active_timeout: 600
-    image: "fedora_39_64bit"
+    image: "debian_12_64bit"
     ssh_keys: [7630]
     user_data: "{{ userdata['content']}}"
     allow_reinstall: true
@@ -217,7 +217,7 @@ cherryservers_server:
       description: Server OS image slug.
       returned: always
       type: str
-      sample: "fedora_39_64bit"
+      sample: "debian_12_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
