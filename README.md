@@ -39,7 +39,7 @@ environment variables.
       cherryservers.cloud.server:
         project_id: 216063
         region: "eu_nord_1"
-        plan: "cloud_vps_1"
+        plan: "B1-1-1gb-20s-shared"
         auth_token: "my-auth-token-goes-here"
 ```
 

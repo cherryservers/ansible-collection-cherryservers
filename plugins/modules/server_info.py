@@ -89,7 +89,7 @@ EXAMPLES = r"""
 - name: Get servers by plan
   cherryservers.cloud.server_info:
     project_id: "213668"
-    plan: cloud_vps_1
+    plan: "B1-1-1gb-20s-shared"
   register: result
 """
 
@@ -155,7 +155,7 @@ cherryservers_servers:
       description: Slug of the server plan.
       returned: always
       type: str
-      sample: "cloud_vps_1"
+      sample: "B1-1-1gb-20s-shared"
     project_id:
       description: Cherry Servers project ID, associated with the server.
       returned: always
