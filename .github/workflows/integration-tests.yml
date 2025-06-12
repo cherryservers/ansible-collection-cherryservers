@@ -13,7 +13,7 @@ jobs:
       matrix:
         versions:
           - ansible: stable-2.14
-            python: "3.9"
+            python: "3.10"
         module:
           - sshkey_info
           - sshkey

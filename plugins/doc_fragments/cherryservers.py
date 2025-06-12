@@ -14,7 +14,7 @@ class ModuleDocFragment:  # pylint: disable=missing-class-docstring, too-few-pub
         type: str
 
     requirements:
-      - python >= 3.9
+      - python >= 3.10
 
     seealso:
       - name: Cherry Servers API documentation
