@@ -81,14 +81,14 @@ EXAMPLES = r"""
   cherryservers.cloud.storage:
     state: "detached"
     project_id: 213668
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     size: 1
   register: result
 
 - name: Create an attached storage volume
   cherryservers.cloud.storage:
     project_id: 213668
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     size: 1
     target_server_id: 596908
   register: result
@@ -115,7 +115,7 @@ cherryservers_storage:
       description: Slug of the region that the EBS volume belongs to.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     size:
       description: Size of the volume, in GB.
       returned: always

@@ -38,7 +38,7 @@ environment variables.
     - name: Create a server
       cherryservers.cloud.server:
         project_id: 216063
-        region: "eu_nord_1"
+        region: "LT-Siauliai"
         plan: "B1-1-1gb-20s-shared"
         auth_token: "my-auth-token-goes-here"
 ```

@@ -80,7 +80,7 @@ EXAMPLES = r"""
 
 - name: 'Get all servers in the EU Nord-1 region, that have the env: test-upd tag'
   cherryservers.cloud.server_info:
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     project_id: "213668"
     tags:
       env: "test-upd"
@@ -165,7 +165,7 @@ cherryservers_servers:
       description: Slug of the server region.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     spot_market:
       description: Whether the server is a spot market instance.
       returned: always

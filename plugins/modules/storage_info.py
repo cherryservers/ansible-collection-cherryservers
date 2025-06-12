@@ -95,7 +95,7 @@ cherryservers_storages:
       description: Slug of the region that the EBS volume belongs to.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     size:
       description: Size of the volume, in GB.
       returned: always

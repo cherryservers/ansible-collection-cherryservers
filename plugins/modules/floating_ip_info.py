@@ -72,7 +72,7 @@ EXAMPLES = r"""
 - name: 'Get all floating IPs in the EU Nord-1 region, that have the env: dev tag'
   cherryservers.cloud.floating_ip_info:
     auth_token: "{{ auth_token }}"
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     project_id: 123456
     tags:
       env: "dev"
@@ -115,7 +115,7 @@ cherryservers_floating_ips:
       description: Slug of the region to which the IP belongs to.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     tags:
       description: Tags of the floating IP.
       returned: always
