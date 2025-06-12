@@ -1,5 +1,5 @@
 server_region: "eu_nord_1"
-server_plan: "cloud_vps_1"
+server_plan: "B1-1-1gb-20s-shared"
 
 server_tags:
   env: "server-info-test"
