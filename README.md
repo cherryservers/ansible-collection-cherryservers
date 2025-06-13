@@ -117,7 +117,7 @@ See the [changelog](CHANGELOG.rst).
 ### Release process
 
 1. Update `_VERSION` in `plugins/module_utils/_version.py`.
-2. Update version in `galaxy.yml`.
+2. Update version in `galaxy.yml` and `pyproject.toml`.
 3. Run `antsibull-changelog release` (make sure `antsibull-changelog` is installed.)
 4. If there are new modules or plugins, update the [Included content](#included-content) section of this document.
 5. Tag the new version and push it.

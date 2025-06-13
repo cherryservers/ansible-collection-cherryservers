@@ -4,6 +4,15 @@ Cherryservers.Cloud Release Notes
 
 .. contents:: Topics
 
+v2.0.0
+======
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Drop support for Python 3.9. This is required to drop support for ansible-core 2.15, which is at EOF.
+- Drop support for ansible-core 2.16. This drops support for Python 3.9 as well, since ansible-core 2.16 requires at least 3.10.
+
 v1.1.0
 ======
 

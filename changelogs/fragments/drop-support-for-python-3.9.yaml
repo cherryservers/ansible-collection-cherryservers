@@ -1,2 +1,0 @@
-breaking_changes:
-  - Drop support for Python 3.9. This is required to drop support for ansible-core 2.15, which is at EOF.
