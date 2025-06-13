@@ -80,7 +80,7 @@ EXAMPLES = r"""
 
 - name: 'Get all servers in the EU Nord-1 region, that have the env: test-upd tag'
   cherryservers.cloud.server_info:
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     project_id: "213668"
     tags:
       env: "test-upd"
@@ -89,7 +89,7 @@ EXAMPLES = r"""
 - name: Get servers by plan
   cherryservers.cloud.server_info:
     project_id: "213668"
-    plan: cloud_vps_1
+    plan: "B1-1-1gb-20s-shared"
   register: result
 """
 
@@ -114,7 +114,7 @@ cherryservers_servers:
       description: Server OS image slug.
       returned: always
       type: str
-      sample: "fedora_39_64bit"
+      sample: "debian_12_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
@@ -155,7 +155,7 @@ cherryservers_servers:
       description: Slug of the server plan.
       returned: always
       type: str
-      sample: "cloud_vps_1"
+      sample: "B1-1-1gb-20s-shared"
     project_id:
       description: Cherry Servers project ID, associated with the server.
       returned: always
@@ -165,7 +165,7 @@ cherryservers_servers:
       description: Slug of the server region.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     spot_market:
       description: Whether the server is a spot market instance.
       returned: always

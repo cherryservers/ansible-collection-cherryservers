@@ -81,7 +81,7 @@ EXAMPLES = r"""
 - name: Create a floating IP
   cherryservers.cloud.floating_ip:
     project_id: 213668
-    region: "eu_nord_1"
+    region: "LT-Siauliai"
     target_server_id: 590738
     ptr_record: "moduletestptr"
     a_record: "moduletesta"
@@ -140,7 +140,7 @@ cherryservers_floating_ip:
       description: Slug of the region to which the IP belongs to.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     tags:
       description: Tags of the floating IP.
       returned: always

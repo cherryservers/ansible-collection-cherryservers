@@ -137,8 +137,8 @@ EXAMPLES = r"""
   cherryservers.cloud.server:
     state: "active"
     project_id: 213668
-    region: "eu_nord_1"
-    plan: "cloud_vps_1"
+    region: "LT-Siauliai"
+    plan: "B1-1-1gb-20s-shared"
     tags:
       env: "test"
     active_timeout: 600
@@ -151,9 +151,9 @@ EXAMPLES = r"""
 - name: Create a server with more options
   cherryservers.cloud.server:
     project_id: 213668
-    region: "eu_nord_1"
-    plan: "cloud_vps_1"
-    image: "fedora_39_64bit"
+    region: "LT-Siauliai"
+    plan: "B1-1-1gb-20s-shared"
+    image: "debian_12_64bit"
     ssh_keys: [1234]
     hostname: "cantankerous-crow"
     extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
@@ -184,7 +184,7 @@ EXAMPLES = r"""
     tags:
       env: "test-upd"
     active_timeout: 600
-    image: "fedora_39_64bit"
+    image: "debian_12_64bit"
     ssh_keys: [7630]
     user_data: "{{ userdata['content']}}"
     allow_reinstall: true
@@ -217,7 +217,7 @@ cherryservers_server:
       description: Server OS image slug.
       returned: always
       type: str
-      sample: "fedora_39_64bit"
+      sample: "debian_12_64bit"
     ip_addresses:
       description: Server IP addresses.
       returned: always
@@ -258,7 +258,7 @@ cherryservers_server:
       description: Slug of the server plan.
       returned: always
       type: str
-      sample: "cloud_vps_1"
+      sample: "B1-1-1gb-20s-shared"
     project_id:
       description: Cherry Servers project ID, associated with the server.
       returned: always
@@ -268,7 +268,7 @@ cherryservers_server:
       description: Slug of the server region.
       returned: always
       type: str
-      sample: "eu_nord_1"
+      sample: "LT-Siauliai"
     spot_market:
       description: Whether the server is a spot market instance.
       returned: always

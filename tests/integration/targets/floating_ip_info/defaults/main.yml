@@ -1,5 +1,5 @@
-fip_region: "eu_nord_1"
+fip_region: "LT-Siauliai"
 fip_tags:
   env: "ansible-fip-info-test"
 
-server_plan: "cloud_vps_1"
+server_plan: "B1-1-1gb-20s-shared"

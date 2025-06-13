@@ -70,7 +70,7 @@ auth_token: "my_api_key"
 plugin: cherryservers.cloud.cherryservers
 project_id: 123456
 auth_token: "my_api_key"
-region: "eu_nord_1"
+region: "LT-Siauliai"
 tags:
   env: "test"
 
