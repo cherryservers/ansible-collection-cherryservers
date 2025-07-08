@@ -63,3 +63,10 @@ releases:
     - drop-support-for-ansible-2.16.yaml
     - drop-support-for-python-3.9.yaml
     release_date: '2025-06-12'
+  2.1.0:
+    changes:
+      minor_changes:
+      - Add server billing cycle option to server creation.
+    fragments:
+    - add-server-cycle.yaml
+    release_date: '2025-07-08'

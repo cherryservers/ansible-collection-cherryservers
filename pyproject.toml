@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cherryservers"
-version = "2.0.0"
+version = "2.1.0"
 description = "Cherry Servers Ansible Collection"
 license = "GPL-3.0"
 readme = "README.md"
@@ -11,7 +11,7 @@ python = "^3.10"
 ansible-core = "^2.16"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.10.0"
+black = "^25.1.0"
 pylint = "^3.3.2"
 antsibull-changelog = "^0.34.0"
 
