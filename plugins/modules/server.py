@@ -125,6 +125,12 @@ options:
             - Reinstalling will wipe all server data and make it temporarily inactive.
         type: bool
         default: false
+    cycle:
+        description:
+            - Server billing cycle slug.
+            - Cannot be updated after creation.
+        type: str
+        default: hourly
 extends_documentation_fragment:
   - cherryservers.cloud.cherryservers
 
@@ -416,6 +422,7 @@ class ServerModule(standard_module.StandardModule):
                 "spot_market": params["spot_market"],
                 "storage_id": params["storage_id"],
                 "tags": params["tags"],
+                "cycle": params["cycle"],
             },
         )
 
@@ -457,6 +464,7 @@ class ServerModule(standard_module.StandardModule):
             "storage_id": {"type": "int"},
             "active_timeout": {"type": "int", "default": 1800},
             "allow_reinstall": {"type": "bool", "default": False},
+            "cycle": {"type": "str", "default": "hourly"},
         }
 
     def _get_ansible_module(self, arg_spec: dict) -> utils.AnsibleModule:
