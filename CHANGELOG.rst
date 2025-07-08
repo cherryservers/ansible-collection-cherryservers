@@ -4,6 +4,14 @@ Cherryservers.Cloud Release Notes
 
 .. contents:: Topics
 
+v2.1.0
+======
+
+Minor Changes
+-------------
+
+- Add server billing cycle option to server creation.
+
 v2.0.0
 ======
 
