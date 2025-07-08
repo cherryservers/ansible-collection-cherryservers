@@ -11,7 +11,7 @@ python = "^3.10"
 ansible-core = "^2.16"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.10.0"
+black = "^25.1.0"
 pylint = "^3.3.2"
 antsibull-changelog = "^0.34.0"
 
