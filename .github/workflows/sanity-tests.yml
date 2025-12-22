@@ -3,6 +3,9 @@ name: sanity-tests
 on:
   [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   sanity:
     timeout-minutes: 30
