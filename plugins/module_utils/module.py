@@ -1,6 +1,7 @@
 # Copyright: (c) 2024, Cherry Servers UAB <info@cherryservers.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 """Cherry Servers resource module abstraction."""
+
 from abc import ABC, abstractmethod
 
 from ansible.module_utils import basic as utils
