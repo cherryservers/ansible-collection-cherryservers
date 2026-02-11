@@ -10,8 +10,8 @@ Cherry Servers Ansible collection for managing infrastructure and resources.
 
 ### Requirements
 
-- ansible-core >= 2.16
-- python >= 3.10
+- ansible-core >= 2.18
+- python >= 3.11
 
 ### Installation
 

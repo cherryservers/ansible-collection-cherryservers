@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         versions:
-          - ansible: stable-2.16
-            python: "3.10"
+          - ansible: stable-2.18
+            python: "3.11"
         module:
           - sshkey_info
           - sshkey

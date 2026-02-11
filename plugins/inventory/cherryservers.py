@@ -12,7 +12,7 @@ author:
   - Martynas Deveikis (@caliban0)
 version_added: "0.1.0"
 requirements:
-  - python >= 3.10
+  - python >= 3.11
 extends_documentation_fragment:
   - inventory_cache
   - constructed
