@@ -4,6 +4,14 @@ Cherryservers.Cloud Release Notes
 
 .. contents:: Topics
 
+v3.0.0
+======
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Drop support for EOF ansible-core versions 2.16 and 2.17. This also means dropping Python 3.10.
+
 v2.1.0
 ======
 

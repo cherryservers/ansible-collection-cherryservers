@@ -70,3 +70,11 @@ releases:
     fragments:
     - add-server-cycle.yaml
     release_date: '2025-07-08'
+  3.0.0:
+    changes:
+      breaking_changes:
+      - Drop support for EOF ansible-core versions 2.16 and 2.17. This also means
+        dropping Python 3.10.
+    fragments:
+    - drop-ansible-2.16-and-2.17.yaml
+    release_date: '2026-02-11'
