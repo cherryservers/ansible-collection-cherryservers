@@ -306,7 +306,7 @@ cherryservers_server:
 
 import base64
 import binascii
-import random
+import secrets
 import string
 from typing import Optional
 from ansible.module_utils import basic as utils
@@ -370,7 +370,7 @@ class ServerModule(standard_module.StandardModule):
                 reinstall_req["ssh_keys"] = resource["ssh_keys"]
             if reinstall_req.get("image", None) is None:
                 reinstall_req["image"] = resource["image"]
-            reinstall_req["password"] = generate_password(16)
+            reinstall_req["password"] = generate_password()
             reinstall_req["type"] = "reinstall"
             req["reinstall"] = reinstall_req
 
@@ -478,27 +478,25 @@ class ServerModule(standard_module.StandardModule):
         )
 
 
-def generate_password(length: int) -> str:
+def generate_password() -> str:
     """Generate a random password.
 
-    The password is guaranteed to:
+    The password is guaranteed to match Cherry Servers API constraints:
         1. Be at least 8 characters long, but no longer than 24 characters.
         2. Have at least one lowercase letter.
         3. Have at least one uppercase letter, that is not the first character.
         4. Have at least one digit, that is not the last character.
         5. Not have any of ' " ` ! $ % & ; % #
     """
-    length = max(8, length)
-    length = min(24, length)
+    length = 24
+    alphabet = string.ascii_letters + string.digits
 
-    lowercase = random.choice(string.ascii_lowercase)
-    uppercase = random.choice(string.ascii_uppercase)
-    digit = random.choice(string.digits)
-    remaining = "".join(
-        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-        for _1 in range(length - 3)
-    )
-    return f"{lowercase}{uppercase}{digit}{remaining}"
+    while True:
+        password = ''.join(secrets.choice(alphabet) for i in range(length))
+        if (any(c.islower() for c in password)
+                and any(c.isupper() for c in password[1:])
+                and any(c.isdigit() for c in password[:-1])):
+            return password
 
 
 def main():
