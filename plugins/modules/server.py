@@ -492,10 +492,12 @@ def generate_password() -> str:
     alphabet = string.ascii_letters + string.digits
 
     while True:
-        password = ''.join(secrets.choice(alphabet) for i in range(length))
-        if (any(c.islower() for c in password)
-                and any(c.isupper() for c in password[1:])
-                and any(c.isdigit() for c in password[:-1])):
+        password = "".join(secrets.choice(alphabet) for i in range(length))
+        if (
+            any(c.islower() for c in password)
+            and any(c.isupper() for c in password[1:])
+            and any(c.isdigit() for c in password[:-1])
+        ):
             return password
 
 
