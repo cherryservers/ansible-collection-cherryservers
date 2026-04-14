@@ -12,7 +12,7 @@ ansible-core = "^2.18"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26.1.0"
-pylint = "^3.3.2"
+pylint = "^4.0.5"
 antsibull-changelog = "^0.34.0"
 
 [build-system]
