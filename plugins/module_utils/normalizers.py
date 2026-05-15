@@ -105,3 +105,20 @@ def normalize_project(project: dict) -> dict:
         "name": project.get("name", None),
         "bgp": project.get("bgp", None),
     }
+
+
+def normalize_prebuilt_plan(plan: dict) -> dict:
+    """Normalize Cherry Servers prebuilt plan resource."""
+
+    # Bandwidth field actually represents egress traffic limit.
+    plan["traffic"] = plan.get("specs", {}).pop("bandwidth", {}).pop("name", None)
+    plan["pricing"] = [
+        {
+            "unit": x.get("unit"),
+            "price": x.get("price"),
+            "currency": x.get("currency"),
+        }
+        for x in plan.get("pricing", [])
+    ]
+
+    return plan
