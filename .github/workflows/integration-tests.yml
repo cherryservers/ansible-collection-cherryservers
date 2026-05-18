@@ -30,7 +30,7 @@ jobs:
           - project_info
     steps:
       - name: Perform testing
-        uses: ansible-community/ansible-test-gh-action@release/v1
+        uses: ansible-community/ansible-test-gh-action@d3a8ec7a59694e25e210fcd44738910149537f0e # v1.17.0
         with:
           pre-test-cmd: >-
             CHERRY_AUTH_TOKEN=${{ secrets.CHERRY_AUTH_TOKEN }}
@@ -48,6 +48,6 @@ jobs:
           integration-retry-on-error: false
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
