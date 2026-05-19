@@ -50,6 +50,13 @@ options:
             - Required if server doesn't exist.
             - Cannot be updated after creation.
         type: str
+    prebuilt_id:
+        description:
+            - ID of the prebuilt plan variant.
+            - Some plans have variants with different hardware configurations,
+              see C(prebuilt_info) module for more.
+            - Cannot be updated after creation.
+        type: int
     image:
         description:
             - Slug of the server image.
@@ -412,6 +419,7 @@ class ServerModule(standard_module.StandardModule):
             project_id=self._module.params["project_id"],
             params={
                 "plan": params["plan"],
+                "prebuilt_id": params["prebuilt_id"],
                 "image": params["image"],
                 "os_partition_size": params["os_partition_size"],
                 "region": params["region"],
@@ -450,6 +458,7 @@ class ServerModule(standard_module.StandardModule):
             "id": {"type": "int"},
             "project_id": {"type": "int"},
             "plan": {"type": "str"},
+            "prebuilt_id": {"type": "int"},
             "image": {"type": "str"},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
