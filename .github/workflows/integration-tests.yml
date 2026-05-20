@@ -30,7 +30,9 @@ jobs:
           - project_info
     steps:
       - name: Perform testing
-        uses: ansible-community/ansible-test-gh-action@d3a8ec7a59694e25e210fcd44738910149537f0e # v1.17.0
+       # Hopefully https://github.com/ansible-community/ansible-test-gh-action/pull/121 gets merged and released
+       # at some point, so we don't need this fork.
+        uses: cherryservers/ansible-test-gh-action@ef40f85a28ca0a14060dab06bb752fb9acea2376 # v1.18.0
         with:
           pre-test-cmd: >-
             CHERRY_AUTH_TOKEN=${{ secrets.CHERRY_AUTH_TOKEN }}
