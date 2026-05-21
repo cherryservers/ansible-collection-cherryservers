@@ -110,15 +110,50 @@ def normalize_project(project: dict) -> dict:
 def normalize_prebuilt_plan(plan: dict) -> dict:
     """Normalize Cherry Servers prebuilt plan resource."""
 
-    # Bandwidth field actually represents egress traffic limit.
-    plan["traffic"] = plan.get("specs", {}).pop("bandwidth", {}).pop("name", None)
-    plan["pricing"] = [
-        {
-            "unit": x.get("unit"),
-            "price": x.get("price"),
-            "currency": x.get("currency"),
-        }
-        for x in plan.get("pricing", [])
-    ]
+    cpu = plan.get("specs", {}).get("cpus", {})
+    memory = plan.get("specs", {}).get("memory", {})
+    storage = plan.get("specs", {}).get("storage", [])
+    nics = plan.get("specs", {}).get("nics", {})
+    traffic = plan.get("specs", {}).get("bandwidth", {}).get("name")
 
-    return plan
+    return {
+        "id": plan.get("id"),
+        "stock_qty": plan.get("stock_qty"),
+        "specs": {
+            "cpus": {
+                "count": cpu.get("count"),
+                "name": cpu.get("name"),
+                "cores": cpu.get("cores"),
+                "frequency": cpu.get("frequency"),
+                "unit": cpu.get("unit"),
+            },
+            "memory": {
+                "count": memory.get("count"),
+                "total": memory.get("total"),
+                "unit": memory.get("unit"),
+                "name": memory.get("name"),
+            },
+            "storage": [
+                {
+                    "count": x.get("count"),
+                    "name": x.get("name"),
+                    "size": x.get("size"),
+                    "unit": x.get("unit"),
+                    "type": x.get("type"),
+                }
+                for x in storage
+            ],
+            "nics": {
+                "name": nics.get("name"),
+            },
+        },
+        "traffic": traffic,
+        "pricing": [
+            {
+                "unit": x.get("unit"),
+                "price": x.get("price"),
+                "currency": x.get("currency"),
+            }
+            for x in plan.get("pricing", [])
+        ],
+    }
