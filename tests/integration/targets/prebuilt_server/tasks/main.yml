@@ -1,0 +1,130 @@
+---
+- name: Run tests
+  block:
+    - name: List plans
+      cherryservers.cloud.plan_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: plans
+
+    - name: Set up plan stock
+      ansible.builtin.set_fact:
+        plan_stock: []
+
+    - name: Populate plan stock
+      ansible.builtin.set_fact:
+        plan_stock: >-
+          {{
+            plan_stock + [
+              {
+                'slug': item.0.slug,
+                'region': item.1.slug,
+                'stock': item.1.stock_qty
+              }
+            ]
+          }}
+      loop: "{{ plans.cherryservers_plans | selectattr('type', 'equalto', 'baremetal') | subelements('available_regions') }}"
+
+    - name: Sort plan stock
+      ansible.builtin.set_fact:
+        # By selecting a plan with the most stock, we maximize the chance
+        # that it will have prebuilt variants available.
+        plan_stock: "{{ plan_stock | sort(attribute='stock', reverse=true) }}"
+
+    - name: List prebuilt plans
+      cherryservers.cloud.prebuilt_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        region: "{{ plan_stock[0].region }}"
+        plan: "{{ plan_stock[0].slug }}"
+      register: prebuilts
+
+    - name: Set prebuilt plan facts
+      ansible.builtin.set_fact:
+        # Discovering a prebuilt plan ID is a bit annoying, because standard assembly servers are also listed
+        # by the prebuilt plans info module, but a server created with such an ID will be considered a
+        # a standard server, so it does not fit our test case.
+        #
+        # Therefore, we pick a prebuilt plan with the lowest stock (from a base plan with a lot of stock), so it's
+        # virtually guaranteed to be a "real" prebuilt plan.
+        #
+        # Should this prove to be too flaky, we'll have to loop through all the base plans, checking their prebuilt
+        # variations, until we find one we can use.
+        prebuilt_id: "{{ (prebuilts.cherryservers_prebuilts | sort(attribute='stock_qty') | first).id }}"
+        region: "{{ plan_stock[0].region }}"
+        base_plan: "{{ plan_stock[0].slug }}"
+
+    - name: Create project
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "ansible-prebuilt-server-test"
+      register: project
+
+    - name: Test create prebuilt server with wrong prebuilt_id
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ plan_stock[0].region }}"
+        plan: "{{ plan_stock[0].slug }}"
+        prebuilt_id: 1
+      register: server
+      ignore_errors: true
+    - name: Verify server creation failed
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
+    - name: Test create prebuilt server with check mode
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ base_plan }}"
+        prebuilt_id: "{{ prebuilt_id }}"
+      register: server
+      check_mode: true
+    - name: Verify server would be changed
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: Test no server actually created
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify no server actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers | list | count == 0
+
+    - name: Test create prebuilt server
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ base_plan }}"
+        prebuilt_id: "{{ prebuilt_id }}"
+      register: server
+    - name: Verify server is changed
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: Test server actually created
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify prebuilt server created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].name.startswith('Prebuild')
+
+  always:
+    - name: Delete the project
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
