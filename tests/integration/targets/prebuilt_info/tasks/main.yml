@@ -1,0 +1,61 @@
+---
+- name: Run tests
+  block:
+    - name: Test info with wrong team_id
+      cherryservers.cloud.prebuilt_info:
+        team_id: 0
+        plan: "{{ base_plan }}"
+        region: "{{ region }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: prebuilt
+      ignore_errors: true
+    - name: Verify failure when getting prebuilt info with wrong team_id
+      ansible.builtin.assert:
+        that:
+          - prebuilt is failed
+
+    - name: Test info with check_mode
+      cherryservers.cloud.prebuilt_info:
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        plan: "{{ base_plan }}"
+        region: "{{ region }}"
+      register: prebuilt
+    - name: Verify info retrieval in check_mode
+      ansible.builtin.assert:
+        that:
+          - prebuilt.cherryservers_prebuilts | list | count >= 1
+          - prebuilt is not changed
+
+    - name: Test info correct result
+      cherryservers.cloud.prebuilt_info:
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        plan: "{{ base_plan }}"
+        region: "{{ region }}"
+      register: prebuilt
+    - name: Verify info result correct
+      ansible.builtin.assert:
+        that:
+          - prebuilt is not changed
+          - prebuilt.cherryservers_prebuilts[0].id is integer
+          - prebuilt.cherryservers_prebuilts[0].stock_qty is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.cpus.count is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.cpus.name is string
+          - prebuilt.cherryservers_prebuilts[0].specs.cpus.cores is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.cpus.frequency is number
+          - prebuilt.cherryservers_prebuilts[0].specs.cpus.unit is string
+          - prebuilt.cherryservers_prebuilts[0].specs.memory.count is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.memory.total is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.memory.unit is string
+          - prebuilt.cherryservers_prebuilts[0].specs.memory.name is string
+          - prebuilt.cherryservers_prebuilts[0].specs.storage[0].count is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.storage[0].name is string
+          - prebuilt.cherryservers_prebuilts[0].specs.storage[0].size is integer
+          - prebuilt.cherryservers_prebuilts[0].specs.storage[0].unit is string
+          - prebuilt.cherryservers_prebuilts[0].specs.storage[0].type is string
+          - prebuilt.cherryservers_prebuilts[0].specs.nics.name is string
+          - prebuilt.cherryservers_prebuilts[0].traffic is string
+          - prebuilt.cherryservers_prebuilts[0].pricing[0].unit is string
+          - prebuilt.cherryservers_prebuilts[0].pricing[0].price is number
+          - prebuilt.cherryservers_prebuilts[0].pricing[0].currency is string
