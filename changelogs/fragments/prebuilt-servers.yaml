@@ -1,0 +1,2 @@
+minor_changes:
+  - server - added the `prebuilt_id` option to server module, which allows provisioning pre-assembled server variants.
