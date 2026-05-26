@@ -104,7 +104,10 @@ class ServerManager(ResourceManager):
         """Wait for Cherry Servers server resource to become active."""
         time_passed = 0
 
-        while server["status"] != "deployed":
+        # Allocated is the final successful status when deploying with iPXE.
+        active_statuses = ("deployed", "allocated")
+
+        while server["status"] not in active_statuses:
             time.sleep(10)
             time_passed += 10
 
