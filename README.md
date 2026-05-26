@@ -58,6 +58,7 @@ storage
 storage_info
 project
 project_info
+plan_info
 prebuilt_info
 ```
 

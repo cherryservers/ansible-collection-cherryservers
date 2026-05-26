@@ -55,6 +55,15 @@ options:
             - Slug of the server image.
             - Setting this option for an existing server requires O(allow_reinstall=true).
         type: str
+    ipxe:
+        description:
+            - Base64-encoded IPXE script.
+            - Note that not all server plans support IPXE, you can use the M(cherryservers.cloud.plan_info)
+              module to find supported plans.
+            - This option is not tracked in server state, so setting it for an existing server
+              will always cause a re-install.
+            - Mutually exclusive with O(image).
+        type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
@@ -356,6 +365,10 @@ class ServerModule(standard_module.StandardModule):
             if params[k] is not None:
                 reinstall_req[k] = params[k]
 
+        if params["ipxe"] is not None:
+            params["image"] = "custom_ipxe_install"
+            reinstall_req["ipxe"] = params["ipxe"]
+
         if params["ssh_keys"] is not None:
             params["ssh_keys"].sort()
         if resource["ssh_keys"] is not None:
@@ -408,11 +421,15 @@ class ServerModule(standard_module.StandardModule):
     def _perform_creation(self) -> dict:
         params = self._module.params
 
+        if params["ipxe"] is not None:
+            params["image"] = "custom_ipxe_install"
+
         server = self._server_manager.create_server(
             project_id=self._module.params["project_id"],
             params={
                 "plan": params["plan"],
                 "image": params["image"],
+                "ipxe": params["ipxe"],
                 "os_partition_size": params["os_partition_size"],
                 "region": params["region"],
                 "hostname": params["hostname"],
@@ -451,6 +468,7 @@ class ServerModule(standard_module.StandardModule):
             "project_id": {"type": "int"},
             "plan": {"type": "str"},
             "image": {"type": "str"},
+            "ipxe": {"type": "str"},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
@@ -475,6 +493,7 @@ class ServerModule(standard_module.StandardModule):
                 ("state", "absent", ("id", "hostname"), True),
                 ("state", "absent", ("id", "project_id"), True),
             ],
+            mutually_exclusive=[("image", "ipxe")],
         )
 
 

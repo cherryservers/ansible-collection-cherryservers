@@ -1,0 +1,60 @@
+---
+- name: Run tests
+  block:
+    - name: Test info with wrong team_id
+      cherryservers.cloud.plan_info:
+        team_id: 0
+        auth_token: "{{ cherryservers_api_key }}"
+      register: plans
+      ignore_errors: true
+    - name: Verify failure when getting plan info with wrong team_id
+      ansible.builtin.assert:
+        that:
+          - plans is failed
+
+    - name: Test info with check_mode
+      cherryservers.cloud.plan_info:
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: plans
+    - name: Verify info retrieval in check_mode
+      ansible.builtin.assert:
+        that:
+          - plans.cherryservers_plans | list | count >= 1
+          - plans is not changed
+
+    - name: Test info correct result
+      cherryservers.cloud.plan_info:
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: plans
+    - name: Verify info result correct
+      ansible.builtin.assert:
+        that:
+          - plans is not changed
+          - plans.cherryservers_plans[0].slug is string
+          - plans.cherryservers_plans[0].type is string
+          - plans.cherryservers_plans[0].specs.cpus.count is integer
+          - plans.cherryservers_plans[0].specs.cpus.name is string
+          - plans.cherryservers_plans[0].specs.cpus.cores is integer
+          - plans.cherryservers_plans[0].specs.cpus.frequency is number
+          - plans.cherryservers_plans[0].specs.cpus.unit is string
+          - plans.cherryservers_plans[0].specs.memory.count is integer
+          - plans.cherryservers_plans[0].specs.memory.total is integer
+          - plans.cherryservers_plans[0].specs.memory.unit is string
+          - plans.cherryservers_plans[0].specs.memory.name is string
+          - plans.cherryservers_plans[0].specs.storage[0].count is integer
+          - plans.cherryservers_plans[0].specs.storage[0].name is string
+          - plans.cherryservers_plans[0].specs.storage[0].size is integer
+          - plans.cherryservers_plans[0].specs.storage[0].unit is string
+          - plans.cherryservers_plans[0].specs.storage[0].type is string
+          - plans.cherryservers_plans[0].specs.nics.name is string
+          - plans.cherryservers_plans[0].traffic is string
+          - plans.cherryservers_plans[0].pricing[0].unit is string
+          - plans.cherryservers_plans[0].pricing[0].price is number
+          - plans.cherryservers_plans[0].pricing[0].currency is string
+          - plans.cherryservers_plans[0].available_regions[0].slug is string
+          - plans.cherryservers_plans[0].available_regions[0].location is string
+          - plans.cherryservers_plans[0].available_regions[0].stock_qty is integer
+          - plans.cherryservers_plans[0].available_regions[0].spot_qty is integer
+          - plans.cherryservers_plans[0].operating_systems[0] is string
