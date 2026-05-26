@@ -1,0 +1,212 @@
+---
+- name: Run tests
+  block:
+    - name: List plans
+      cherryservers.cloud.plan_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+      register: plans
+
+    - name: Set up plan stock
+      ansible.builtin.set_fact:
+        plan_stock: []
+
+    - name: Populate plan stock
+      ansible.builtin.set_fact:
+        plan_stock: >-
+          {{
+            plan_stock + [
+              {
+                'slug': item.0.slug,
+                'region': item.1.slug,
+                'stock': item.1.stock_qty
+              }
+            ]
+          }}
+      loop: "{{ plans.cherryservers_plans | selectattr('operating_systems', 'issuperset', ['custom_ipxe_install']) | subelements('available_regions') }}"
+
+    - name: Sort plan stock
+      ansible.builtin.set_fact:
+        # Pick the plan that has the most stock.
+        plan_stock: "{{ plan_stock | sort(attribute='stock', reverse=true) }}"
+
+    - name: Select plan
+      ansible.builtin.set_fact:
+        region: "{{ plan_stock[0].region }}"
+        plan: "{{ plan_stock[0].slug }}"
+
+    - name: Create project
+      cherryservers.cloud.project:
+        auth_token: "{{ cherryservers_api_key }}"
+        team_id: "{{ cherryservers_team_id }}"
+        name: "ansible-ipxe-server-test"
+      register: project
+
+    - name: Test create server with both image and IPXE set.
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ plan }}"
+        ipxe: "{{ ipxe }}"
+        image: "{{ image }}"
+      register: server
+      ignore_errors: true
+    - name: Verify server creation failed
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
+    - name: Test no server actually created
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify no server actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers | list | count == 0
+
+    - name: Test create server with check mode
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ plan }}"
+        ipxe: "{{ ipxe }}"
+      register: server
+      check_mode: true
+    - name: Verify server would be changed
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: Test no server actually created
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify no server actually created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers | list | count == 0
+
+    - name: Test create server
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ plan }}"
+        ipxe: "{{ ipxe }}"
+      register: server
+    - name: Verify server is changed
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
+    - name: Test server actually created
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify server created
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].image == "custom_ipxe_install"
+
+    - name: Test server re-install with allow_reinstall disabled
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+        hostname: "reinstalled"
+        ipxe: "{{ ipxe }}"
+      ignore_errors: true
+      register: result
+    - name: Verify server re-install failed
+      ansible.builtin.assert:
+        that:
+          - result is failed
+
+    - name: Test server not re-installed
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify server not re-installed
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].hostname != "reinstalled"
+
+    - name: Test server re-install with check mode
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+        hostname: "reinstalled"
+        ipxe: "{{ ipxe }}"
+      register: reinstalled
+      check_mode: true
+    - name: Verify server reports as changed
+      ansible.builtin.assert:
+        that:
+          - reinstalled is changed
+
+    - name: Test server not re-installed
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify server not re-installed
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].hostname != "reinstalled"
+
+    - name: Test re-install server with non-iPXE image
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+        image: "{{ image }}"
+        allow_reinstall: true
+      register: reinstalled
+    - name: Verify server reports as changed
+      ansible.builtin.assert:
+        that:
+          - reinstalled is changed
+
+    - name: Test server re-installed
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify server re-installed
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].image != "custom_ipxe_install"
+
+    - name: Test re-install server with iPXE
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+        ipxe: "{{ ipxe }}"
+        allow_reinstall: true
+      register: reinstalled
+    - name: Verify server reports as changed
+      ansible.builtin.assert:
+        that:
+          - reinstalled is changed
+
+    - name: Test server re-installed
+      cherryservers.cloud.server_info:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+      register: result
+    - name: Verify server re-installed
+      ansible.builtin.assert:
+        that:
+          - result.cherryservers_servers[0].image == "custom_ipxe_install"
+
+  always:
+    - name: Delete the project
+      cherryservers.cloud.project:
+        id: "{{ project.cherryservers_project.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        state: absent
