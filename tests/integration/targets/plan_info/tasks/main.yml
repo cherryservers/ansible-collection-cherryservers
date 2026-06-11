@@ -17,6 +17,7 @@
         team_id: "{{ cherryservers_team_id }}"
         auth_token: "{{ cherryservers_api_key }}"
       register: plans
+      check_mode: true
     - name: Verify info retrieval in check_mode
       ansible.builtin.assert:
         that:

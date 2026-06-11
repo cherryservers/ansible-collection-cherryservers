@@ -21,6 +21,7 @@
         plan: "{{ base_plan }}"
         region: "{{ region }}"
       register: prebuilt
+      check_mode: true
     - name: Verify info retrieval in check_mode
       ansible.builtin.assert:
         that:
