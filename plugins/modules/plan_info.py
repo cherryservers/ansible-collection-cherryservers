@@ -212,7 +212,7 @@ cherryservers_plans:
           description: The amount of servers in the spot market.
           returned: always
           type: int
-          sample: int
+          sample: 0
     operating_systems:
       description: The operating systems supported on this machine.
       returned: always
