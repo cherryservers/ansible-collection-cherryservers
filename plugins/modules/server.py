@@ -436,10 +436,10 @@ class ServerModule(standard_module.StandardModule):
                 base64.b64decode(params["user_data"], validate=True)
             except binascii.Error as e:
                 self._module.fail_json(msg=f"invalid user_data string: {e}")
-        
+
         if params["ipxe"] is not None:
             try:
-                base64.b64decode(params["ipxe", validate=True])
+                base64.b64decode(params["ipxe"], validate=True)
             except binascii.Error as e:
                 self._module.fail_json(msg=f"invalid ipxe script: {e}")
 
@@ -495,13 +495,13 @@ class ServerModule(standard_module.StandardModule):
             "plan": {"type": "str"},
             "prebuilt_id": {"type": "int"},
             "image": {"type": "str"},
-            "ipxe": {"type": "str"},
+            "ipxe": {"type": "str", "no_log": True},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
             "ssh_keys": {"type": "list", "elements": "int", "no_log": False},
             "extra_ip_addresses": {"type": "list", "elements": "str"},
-            "user_data": {"type": "str"},
+            "user_data": {"type": "str", "no_log": True},
             "tags": {
                 "type": "dict",
             },
