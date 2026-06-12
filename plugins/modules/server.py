@@ -436,6 +436,12 @@ class ServerModule(standard_module.StandardModule):
                 base64.b64decode(params["user_data"], validate=True)
             except binascii.Error as e:
                 self._module.fail_json(msg=f"invalid user_data string: {e}")
+        
+        if params["ipxe"] is not None:
+            try:
+                base64.b64decode(params["ipxe", validate=True])
+            except binascii.Error as e:
+                self._module.fail_json(msg=f"invalid ipxe script: {e}")
 
     def _perform_creation(self) -> dict:
         params = self._module.params
