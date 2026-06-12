@@ -208,6 +208,18 @@ EXAMPLES = r"""
     state: "absent"
     id: 593225
   register: result
+
+- name: Create a prebuilt server and wait for it to become active
+  cherryservers.cloud.server:
+    state: "active"
+    project_id: 213668
+    region: "LT-Siauliai"
+    plan: "amd-ryzen-9950x"
+    prebuilt_id: 123
+    tags:
+      env: "test"
+    active_timeout: 1800
+  register: result
 """
 
 RETURN = r"""
