@@ -184,6 +184,20 @@ EXAMPLES = r"""
       env: "test"
   register: result
 
+- name: Read iPXE
+  ansible.builtin.slurp:
+    src: "/home/mypath/ubuntu.ipxe"
+  register: ipxe
+- name: Create a server with a custom iPXE script
+  cherryservers.cloud.server:
+    project_id: 213668
+    region: "LT-Siauliai"
+    plan: "amd-ryzen-9950x"
+    ipxe: "{{ ipxe['content'] }}"
+    tags:
+      env: "test"
+  register: result
+
 - name: Update a server
   cherryservers.cloud.server:
     state: "active"
