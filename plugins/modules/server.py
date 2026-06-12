@@ -62,6 +62,15 @@ options:
             - Slug of the server image.
             - Setting this option for an existing server requires O(allow_reinstall=true).
         type: str
+    ipxe:
+        description:
+            - Base64-encoded IPXE script.
+            - Note that not all server plans support IPXE, you can use the M(cherryservers.cloud.plan_info)
+              module to find supported plans.
+            - This option is not tracked in server state, so setting it for an existing server
+              will always cause a re-install.
+            - Mutually exclusive with O(image).
+        type: str
     os_partition_size:
         description:
             - Server OS partition size in GB.
@@ -171,6 +180,20 @@ EXAMPLES = r"""
     hostname: "cantankerous-crow"
     extra_ip_addresses: ["5ab09cbd-80f2-8fcd-064e-c260e44b0ae9"]
     user_data: "{{ userdata['content'] }}"
+    tags:
+      env: "test"
+  register: result
+
+- name: Read iPXE
+  ansible.builtin.slurp:
+    src: "/home/mypath/ubuntu.ipxe"
+  register: ipxe
+- name: Create a server with a custom iPXE script
+  cherryservers.cloud.server:
+    project_id: 213668
+    region: "LT-Siauliai"
+    plan: "amd-ryzen-9950x"
+    ipxe: "{{ ipxe['content'] }}"
     tags:
       env: "test"
   register: result
@@ -375,6 +398,10 @@ class ServerModule(standard_module.StandardModule):
             if params[k] is not None:
                 reinstall_req[k] = params[k]
 
+        if params["ipxe"] is not None:
+            params["image"] = "custom_ipxe_install"
+            reinstall_req["ipxe"] = params["ipxe"]
+
         if params["ssh_keys"] is not None:
             params["ssh_keys"].sort()
         if resource["ssh_keys"] is not None:
@@ -424,8 +451,17 @@ class ServerModule(standard_module.StandardModule):
             except binascii.Error as e:
                 self._module.fail_json(msg=f"invalid user_data string: {e}")
 
+        if params["ipxe"] is not None:
+            try:
+                base64.b64decode(params["ipxe"], validate=True)
+            except binascii.Error as e:
+                self._module.fail_json(msg=f"invalid ipxe script: {e}")
+
     def _perform_creation(self) -> dict:
         params = self._module.params
+
+        if params["ipxe"] is not None:
+            params["image"] = "custom_ipxe_install"
 
         server = self._server_manager.create_server(
             project_id=self._module.params["project_id"],
@@ -433,6 +469,7 @@ class ServerModule(standard_module.StandardModule):
                 "plan": params["plan"],
                 "prebuilt_id": params["prebuilt_id"],
                 "image": params["image"],
+                "ipxe": params["ipxe"],
                 "os_partition_size": params["os_partition_size"],
                 "region": params["region"],
                 "hostname": params["hostname"],
@@ -472,12 +509,13 @@ class ServerModule(standard_module.StandardModule):
             "plan": {"type": "str"},
             "prebuilt_id": {"type": "int"},
             "image": {"type": "str"},
+            "ipxe": {"type": "str", "no_log": True},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
             "ssh_keys": {"type": "list", "elements": "int", "no_log": False},
             "extra_ip_addresses": {"type": "list", "elements": "str"},
-            "user_data": {"type": "str"},
+            "user_data": {"type": "str", "no_log": True},
             "tags": {
                 "type": "dict",
             },
@@ -496,6 +534,7 @@ class ServerModule(standard_module.StandardModule):
                 ("state", "absent", ("id", "hostname"), True),
                 ("state", "absent", ("id", "project_id"), True),
             ],
+            mutually_exclusive=[("image", "ipxe")],
         )
 
 
