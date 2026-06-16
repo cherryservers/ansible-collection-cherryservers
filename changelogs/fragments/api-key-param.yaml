@@ -1,0 +1,4 @@
+minor_changes:
+  - Added `api_key` parameter to all modules (https://github.com/cherryservers/cherryctl/issues/73).
+deprecated_features:
+  - Deprecated `auth_token` in favor of `api_key` for all modules (https://github.com/cherryservers/cherryctl/issues/73).

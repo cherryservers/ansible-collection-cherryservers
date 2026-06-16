@@ -23,10 +23,9 @@ ansible-galaxy collection install cherryservers.cloud
 
 ### Usage
 
-Before using the collection, you need to generate an API token from
+Before using the collection, you need to generate an API key from
 the [Cherry Servers client portal](https://portal.cherryservers.com/settings/api-keys).
-You can supply the token with the `auth_token` attribute or by setting `CHERRY_AUTH_TOKEN` (or `CHERRY_AUTH_KEY`)
-environment variables.
+You can supply the API key with the `api_key` attribute or by setting the `CHERRY_API_KEY` environment variable.
 
 ### Example playbook
 
@@ -40,7 +39,7 @@ environment variables.
         project_id: 216063
         region: "LT-Siauliai"
         plan: "B1-1-1gb-20s-shared"
-        auth_token: "my-auth-token-goes-here"
+        api_key: "my-api-key-goes-here"
 ```
 
 ## Included content

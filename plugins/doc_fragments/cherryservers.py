@@ -7,11 +7,15 @@
 class ModuleDocFragment:  # pylint: disable=missing-class-docstring, too-few-public-methods
     DOCUMENTATION = r"""
     options:
-      auth_token:
+      api_key:
         description:
-          - API authentication token for Cherry Servers public API.
-          - Can be supplied via E(CHERRY_AUTH_TOKEN) and E(CHERRY_AUTH_KEY) environment variables.
+          - API key for Cherry Servers public API.
+          - Can also be supplied via the E(CHERRY_API_KEY) environment variable.
+          - The alias C(auth_token) is B(deprecated) and will be removed in C(v4.0.0),
+            along with the environment variables E(CHERRY_AUTH_TOKEN) and E(CHERRY_AUTH_KEY).
         type: str
+        aliases: [auth_token]
+        required: true
 
     requirements:
       - python >= 3.11
@@ -20,7 +24,7 @@ class ModuleDocFragment:  # pylint: disable=missing-class-docstring, too-few-pub
       - name: Cherry Servers API documentation
         description: Complete reference for Cherry Servers public API.
         link: https://api.cherryservers.com/doc/
-      - name: Cherry Servers authentication token generation
-        description: Generate Cherry Servers API tokens.
+      - name: Cherry Servers API key generation
+        description: Generate Cherry Servers API keys.
         link: https://portal.cherryservers.com/settings/api-keys
     """

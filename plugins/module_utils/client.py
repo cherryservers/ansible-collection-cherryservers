@@ -23,12 +23,8 @@ from ._version import _VERSION
 class CherryServersClient:  # pylint: disable=too-few-public-methods
     """Cherry Server public API client.
 
-    Upon instantiation this class will attempt to validate
-    the provided Cherry Servers authentication token,
-    and will fail the ansible module if unable to do so.
-    This token can be set via the CHERRY_AUTH_TOKEN and
-    CHERRY_AUTH_KEY environment variables or passed as
-    an ansible module parameter.
+    Validates `api_key` and `base_url` module parameters by making a dummy
+    request.
 
     Methods:
 
@@ -43,9 +39,9 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         self._base_url = self._module.params.get(
             "base_url", CherryServersClient._base_url
         )
-        self._auth_token = self._module.params.get("auth_token", None)
+        self._auth_token = self._module.params.get("api_key", None)
         if self._auth_token is None:
-            self._module.fail_json(msg="auth_token not provided.")
+            self._module.fail_json(msg="auth_token/api_key not provided.")
 
         self._headers = {
             "Authorization": f"Bearer {self._auth_token}",
@@ -58,7 +54,7 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
     def _validate_auth_token(self):
         status, _2 = self.send_request("GET", "user", 10)
         if status != 200:
-            self._module.fail_json(msg="Failed to validate auth token.")
+            self._module.fail_json(msg="Failed to validate auth_token/api-key.")
 
     def send_request(
         self, method: str, url: str, timeout: int, **kwargs
