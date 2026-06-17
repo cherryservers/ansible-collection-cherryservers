@@ -39,22 +39,22 @@ class CherryServersClient:  # pylint: disable=too-few-public-methods
         self._base_url = self._module.params.get(
             "base_url", CherryServersClient._base_url
         )
-        self._auth_token = self._module.params.get("api_key", None)
-        if self._auth_token is None:
+        self._api_key = self._module.params.get("api_key", None)
+        if self._api_key is None:
             self._module.fail_json(msg="auth_token/api_key not provided.")
 
         self._headers = {
-            "Authorization": f"Bearer {self._auth_token}",
+            "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
             "User-Agent": f"cherryservers-ansible/{_VERSION}",
         }
 
-        self._validate_auth_token()
+        self._validate_api_key()
 
-    def _validate_auth_token(self):
+    def _validate_api_key(self):
         status, _2 = self.send_request("GET", "user", 10)
         if status != 200:
-            self._module.fail_json(msg="Failed to validate auth_token/api-key.")
+            self._module.fail_json(msg="Failed to validate auth_token/api_key.")
 
     def send_request(
         self, method: str, url: str, timeout: int, **kwargs
