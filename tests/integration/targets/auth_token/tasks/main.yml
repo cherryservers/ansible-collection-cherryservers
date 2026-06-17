@@ -1,0 +1,15 @@
+---
+- name: Run tests
+  block:
+    # Regression test for deprecated api_key alias auth_token, can be removed in v4.0.0.
+    - name: Test plan info with auth_token
+      cherryservers.cloud.plan_info:
+        team_id: "{{ cherryservers_team_id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+      register: plans
+      check_mode: true
+    - name: Verify info retrieval in check_mode
+      ansible.builtin.assert:
+        that:
+          - plans.cherryservers_plans | list | count >= 1
+          - plans is not changed

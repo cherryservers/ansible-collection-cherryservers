@@ -4,7 +4,7 @@
     - name: test create ssh key missing parameter
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: first_sshkey
       ignore_errors: true
     - name: verify create ssh key missing parameter
@@ -16,7 +16,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: first_sshkey
       check_mode: true
     - name: verify create ssh key with check mode
@@ -28,7 +28,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify that no ssh key actually created
       ansible.builtin.assert:
@@ -40,7 +40,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: first_sshkey
     - name: verify create ssh key
       ansible.builtin.assert:
@@ -51,7 +51,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify ssh key actually created
       ansible.builtin.assert:
@@ -62,7 +62,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
       check_mode: true
     - name: verify key creation idempotency with check mode
@@ -74,7 +74,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify key creation idempotency
       ansible.builtin.assert:
@@ -85,7 +85,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_2 }}"
         key: "{{ fake_public_key_2 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: second_sshkey
     - name: verify second ssh key
       ansible.builtin.assert:
@@ -96,7 +96,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_2 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
       ignore_errors: true
     - name: verify fail cleanly on update ambiguity
@@ -109,7 +109,7 @@
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       check_mode: true
       register: result
     - name: verify update ssh key with check mode
@@ -121,7 +121,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify no update actually happened
       ansible.builtin.assert:
@@ -134,7 +134,7 @@
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify update ssh key
       ansible.builtin.assert:
@@ -145,7 +145,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify update actually happened
       ansible.builtin.assert:
@@ -157,7 +157,7 @@
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
       check_mode: true
     - name: verify key update idempotency with check mode
@@ -170,7 +170,7 @@
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify key update idempotency
       ansible.builtin.assert:
@@ -179,7 +179,7 @@
 
     - name: test delete keys no params
       cherryservers.cloud.sshkey:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
     - name: verify delete keys no params
@@ -191,7 +191,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
       check_mode: true
@@ -204,7 +204,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify that no ssh key actually deleted
       ansible.builtin.assert:
@@ -215,7 +215,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
     - name: verify delete ssh key
@@ -227,7 +227,7 @@
       cherryservers.cloud.sshkey_info:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify ssh key actually deleted
       ansible.builtin.assert:
@@ -239,7 +239,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
       check_mode: true
@@ -252,7 +252,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_updated }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
     - name: verify key delete idempotency with check mode
@@ -266,7 +266,7 @@
         label: "{{ key_label_1 }}_updated"
         key: "{{ fake_public_key_2 }}"
         id: "{{ first_sshkey.cherryservers_sshkey.id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent
       register: result
     - name: verify delete test keys

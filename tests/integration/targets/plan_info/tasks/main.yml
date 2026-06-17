@@ -4,7 +4,7 @@
     - name: Test info with wrong team_id
       cherryservers.cloud.plan_info:
         team_id: 0
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: plans
       ignore_errors: true
     - name: Verify failure when getting plan info with wrong team_id
@@ -15,7 +15,7 @@
     - name: Test info with check_mode
       cherryservers.cloud.plan_info:
         team_id: "{{ cherryservers_team_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: plans
       check_mode: true
     - name: Verify info retrieval in check_mode
@@ -27,7 +27,7 @@
     - name: Test info correct result
       cherryservers.cloud.plan_info:
         team_id: "{{ cherryservers_team_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: plans
     - name: Verify info result correct
       ansible.builtin.assert:

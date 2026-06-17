@@ -5,7 +5,7 @@
       cherryservers.cloud.project:
         name: "{{ project_name }}"
         team_id: "{{ cherryservers_team_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: project
     - name: verify create project
       ansible.builtin.assert:
@@ -14,7 +14,7 @@
 
     - name: test no options info gathering
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         team_id: "{{ cherryservers_team_id }}"
       register: result
     - name: verify no options info gathering
@@ -25,7 +25,7 @@
 
     - name: test no options info gathering with check mode
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         team_id: "{{ cherryservers_team_id }}"
       check_mode: true
       register: result
@@ -37,7 +37,7 @@
 
     - name: test gather project by id
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ project.cherryservers_project.id }}"
       register: result
     - name: verify gather project by id
@@ -48,7 +48,7 @@
 
     - name: test gather project by id wrong
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "123456"
       register: result
       ignore_errors: true
@@ -59,7 +59,7 @@
 
     - name: test gather project by name
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         name: "{{ project.cherryservers_project.name }}"
         team_id: "{{ cherryservers_team_id }}"
       register: result
@@ -71,7 +71,7 @@
 
     - name: test gather project by name wrong
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         name: "{{ project.cherryservers_project.name }}wrong"
         team_id: "{{ cherryservers_team_id }}"
       register: result
@@ -83,7 +83,7 @@
 
     - name: test gather project with multiple options
       cherryservers.cloud.project_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ project.cherryservers_project.id }}"
         name: "{{ project.cherryservers_project.name }}"
         team_id: "{{ cherryservers_team_id }}"
@@ -98,7 +98,7 @@
       cherryservers.cloud.project:
         id: "{{ project.cherryservers_project.id }}"
         state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify delete project
       ansible.builtin.assert:
