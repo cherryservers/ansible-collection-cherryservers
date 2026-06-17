@@ -3,14 +3,14 @@
   block:
     - name: create project
       cherryservers.cloud.project:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         team_id: "{{ cherryservers_team_id }}"
         name: "ansible-test-fip-info"
       register: project
 
     - name: create server
       cherryservers.cloud.server:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         region: "{{ fip_region }}"
         project_id: "{{ project.cherryservers_project.id }}"
         plan: "{{ server_plan }}"
@@ -22,7 +22,7 @@
 
     - name: create fip
       cherryservers.cloud.floating_ip:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         region: "{{ fip_region }}"
         project_id: "{{ project.cherryservers_project.id }}"
         target_server_id: "{{ server.cherryservers_server.id }}"
@@ -35,7 +35,7 @@
 
     - name: test gather by project_id
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
       register: result
     - name: verify gather by project_id
@@ -46,7 +46,7 @@
 
     - name: test gather by project_id with check mode
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
       check_mode: true
       register: result
@@ -58,7 +58,7 @@
 
     - name: test gather floating ip by id
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       register: result
     - name: verify gather floating ip by id
@@ -69,7 +69,7 @@
 
     - name: test gather floating ip by id with check mode
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ fip.cherryservers_floating_ip.id }}"
       check_mode: true
       register: result
@@ -81,7 +81,7 @@
 
     - name: test gather floating ip by id wrong
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "ef607e8a-d9d4-d4ba-7379-55dbd841e06c"
       register: result
       ignore_errors: true
@@ -92,7 +92,7 @@
 
     - name: test gather floating ip by address
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         address: "{{ fip.cherryservers_floating_ip.address }}"
       register: result
@@ -104,7 +104,7 @@
 
     - name: test gather floating ip by address with check mode
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         address: "{{ fip.cherryservers_floating_ip.address }}"
       register: result
@@ -117,7 +117,7 @@
 
     - name: test gather floating ip by server id
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         target_server_id: "{{ fip.cherryservers_floating_ip.target_server_id }}"
       register: result
@@ -129,7 +129,7 @@
 
     - name: test gather floating ip by tags
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         tags: "{{ fip_tags }}"
       register: result
@@ -141,7 +141,7 @@
 
     - name: test gather floating ip by tags with check mode
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         tags: "{{ fip_tags }}"
       check_mode: true
@@ -154,7 +154,7 @@
 
     - name: test gather floating ip by tags wrong
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         tags:
           env: "none"
@@ -167,7 +167,7 @@
 
     - name: test gather with all options
       cherryservers.cloud.floating_ip_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ project.cherryservers_project.id }}"
         address: "{{ fip.cherryservers_floating_ip.address }}"
         tags: "{{ fip.cherryservers_floating_ip.tags }}"
@@ -184,4 +184,4 @@
       cherryservers.cloud.project:
         id: "{{ project.cherryservers_project.id }}"
         state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"

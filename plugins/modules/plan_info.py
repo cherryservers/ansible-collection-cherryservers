@@ -37,7 +37,6 @@ author:
 EXAMPLES = r"""
 - name: Get plans
   cherryservers.cloud.plan_info:
-    auth_token: "{{ auth_token }}"
     team_id: 123456
   register: result
 """

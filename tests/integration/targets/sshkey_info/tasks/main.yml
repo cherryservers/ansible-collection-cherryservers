@@ -5,7 +5,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         key: "{{ fake_public_key_1 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: first_key
     - name: verify create first ssh key
       ansible.builtin.assert:
@@ -16,7 +16,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_2 }}"
         key: "{{ fake_public_key_2 }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: second_key
     - name: verify create second ssh key
       ansible.builtin.assert:
@@ -25,7 +25,7 @@
 
     - name: test no options info gathering
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify no options info gathering
       ansible.builtin.assert:
@@ -35,7 +35,7 @@
 
     - name: test no options info gathering with check mode
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       check_mode: true
       register: result
     - name: verify no options info gathering
@@ -46,7 +46,7 @@
 
     - name: test gather key by id
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ first_key.cherryservers_sshkey.id }}"
       register: result
     - name: verify gather key by id
@@ -57,7 +57,7 @@
 
     - name: test gather key by id wrong
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "1234"
       register: result
       ignore_errors: true
@@ -68,7 +68,7 @@
 
     - name: test gather key by fingerprint
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         fingerprint: "{{ first_key.cherryservers_sshkey.fingerprint }}"
       register: result
     - name: verify gather key by fingerprint
@@ -79,7 +79,7 @@
 
     - name: test gather key by fingerprint wrong
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         fingerprint: "{{ first_key.cherryservers_sshkey.fingerprint }}bad"
       register: result
     - name: verify gather key by fingerprint wrong
@@ -90,7 +90,7 @@
 
     - name: test gather key by label
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         label: "{{ first_key.cherryservers_sshkey.label }}"
       register: result
     - name: verify gather key by label
@@ -101,7 +101,7 @@
 
     - name: test gather key by label wrong
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         label: "{{ first_key.cherryservers_sshkey.label }}bad"
       register: result
     - name: verify gather key by label wrong
@@ -112,7 +112,7 @@
 
     - name: test gather key by public_key
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         key: "{{ first_key.cherryservers_sshkey.key }}"
       register: result
     - name: verify gather key by public_key
@@ -123,7 +123,7 @@
 
     - name: test gather key by public_key wrong
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         key: "{{ first_key.cherryservers_sshkey.key }}bad"
       register: result
     - name: verify gather key by public_key wrong
@@ -134,7 +134,7 @@
 
     - name: test gather multiple options
       cherryservers.cloud.sshkey_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ first_key.cherryservers_sshkey.id }}"
         fingerprint: "{{ second_key.cherryservers_sshkey.fingerprint }}"
       register: result
@@ -148,7 +148,7 @@
       cherryservers.cloud.sshkey:
         label: "{{ key_label_1 }}"
         state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify delete ssh keys
       ansible.builtin.assert:
@@ -159,7 +159,7 @@
       cherryservers.cloud.sshkey:
         key: "{{ fake_public_key_2 }}"
         state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
     - name: verify delete ssh keys
       ansible.builtin.assert:

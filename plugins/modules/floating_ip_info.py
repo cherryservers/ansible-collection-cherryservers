@@ -59,19 +59,16 @@ author:
 EXAMPLES = r"""
 - name: Get single floating IP
   cherryservers.cloud.floating_ip_info:
-    auth_token: "{{ auth_token }}"
     id: "497f6eca-6276-4993-bfeb-53cbbbba6f08"
   register: result
 
 - name: Get all project floating IPs
   cherryservers.cloud.floating_ip_info:
-    auth_token: "{{ auth_token }}"
     project_id: 123456
   register: result
 
-- name: 'Get all floating IPs in the EU Nord-1 region, that have the env: dev tag'
+- name: 'Get all floating IPs in the LT-Siauliai region, that have the env: dev tag'
   cherryservers.cloud.floating_ip_info:
-    auth_token: "{{ auth_token }}"
     region: "LT-Siauliai"
     project_id: 123456
     tags:

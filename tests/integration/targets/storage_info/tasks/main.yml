@@ -8,7 +8,7 @@
         size: "{{ storage_size }}"
         state: "detached"
         description: "{{ storage_description }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: storage
     - name: verify create storage
       ansible.builtin.assert:
@@ -17,7 +17,7 @@
 
     - name: test gather with no params
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result
       ignore_errors: true
     - name: verify no options info gathering
@@ -27,7 +27,7 @@
 
     - name: test gather by project id
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
       register: result
     - name: verify gather by project id
@@ -38,7 +38,7 @@
 
     - name: test gather by project id with check mode
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
       register: result
       check_mode: true
@@ -50,7 +50,7 @@
 
     - name: test gather with all params
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: "detached"
         id: "{{ storage.cherryservers_storage.id }}"
         description: "{{ storage_description  }}"
@@ -65,7 +65,7 @@
 
     - name: test gather with all params with check mode
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: "detached"
         id: "{{ storage.cherryservers_storage.id }}"
         description: "{{ storage_description  }}"
@@ -81,7 +81,7 @@
 
     - name: test gather with wrong id
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "1"
       register: result
       ignore_errors: true
@@ -92,7 +92,7 @@
 
     - name: test gather by region
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ storage_region }}"
       register: result
@@ -104,7 +104,7 @@
 
     - name: test gather with detached state
       cherryservers.cloud.storage_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: "detached"
         project_id: "{{ cherryservers_project_id }}"
       register: result
@@ -119,5 +119,5 @@
       cherryservers.cloud.storage:
         id: "{{ storage.cherryservers_storage.id }}"
         state: "absent"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: result

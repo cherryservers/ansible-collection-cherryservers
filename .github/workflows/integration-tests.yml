@@ -35,7 +35,7 @@ jobs:
         uses: cherryservers/ansible-test-gh-action@ef40f85a28ca0a14060dab06bb752fb9acea2376 # v1.18.0
         with:
           pre-test-cmd: >-
-            CHERRY_AUTH_TOKEN=${{ secrets.CHERRY_AUTH_TOKEN }}
+            CHERRY_API_KEY=${{ secrets.CHERRY_AUTH_TOKEN }}
             CHERRY_PROJECT_ID=${{ secrets.CHERRY_PROJECT_ID }}
             CHERRY_BAREMETAL_SERVER_ID=${{ secrets.CHERRY_BAREMETAL_SERVER_ID }}
             CHERRY_TEAM_ID=${{ secrets.CHERRY_TEAM_ID }}

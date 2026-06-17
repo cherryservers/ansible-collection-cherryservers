@@ -52,13 +52,11 @@ author:
 EXAMPLES = r"""
 - name: Get SSH key by ID
   cherryservers.cloud.sshkey_info:
-    auth_token: "{{ auth_token }}"
     id: 0000
   register: result
 
 - name: Get SSH key by label
   cherryservers.cloud.sshkey_info:
-    auth_token: "{{ auth_token }}"
     label: "my-key"
   register: result
 """

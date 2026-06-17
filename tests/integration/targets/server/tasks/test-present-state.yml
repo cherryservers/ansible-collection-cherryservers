@@ -3,7 +3,7 @@
   block:
     - name: test create server missing parameter
       cherryservers.cloud.server:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         state: "present"
       register: server
@@ -16,7 +16,7 @@
     - name: test create server with check mode
       cherryservers.cloud.server:
         state: "present"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         hostname: "ansible-test-present-server"
@@ -30,7 +30,7 @@
 
     - name: test no server actually created
       cherryservers.cloud.server_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         hostname: "ansible-test-present-server"
       register: result
@@ -43,7 +43,7 @@
     - name: test create server
       cherryservers.cloud.server:
         state: "present"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         plan: "{{ server_plan }}"
@@ -55,7 +55,7 @@
 
     - name: test server actually created
       cherryservers.cloud.server_info:
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
       register: result
     - name: verify server actually created
@@ -70,7 +70,7 @@
       cherryservers.cloud.server:
         state: "present"
         id: "{{ server.cherryservers_server.id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         plan: "{{ server_plan }}"
@@ -85,7 +85,7 @@
       cherryservers.cloud.server:
         state: "present"
         id: "{{ server.cherryservers_server.id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         project_id: "{{ cherryservers_project_id }}"
         region: "{{ server_region }}"
         plan: "{{ server_plan }}"
@@ -99,5 +99,5 @@
     - name: delete servers
       cherryservers.cloud.server:
         id: "{{ server.cherryservers_server.id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         state: absent

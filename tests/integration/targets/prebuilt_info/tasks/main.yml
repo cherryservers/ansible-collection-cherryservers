@@ -6,7 +6,7 @@
         team_id: 0
         plan: "{{ base_plan }}"
         region: "{{ region }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
       register: prebuilt
       ignore_errors: true
     - name: Verify failure when getting prebuilt info with wrong team_id
@@ -17,7 +17,7 @@
     - name: Test info with check_mode
       cherryservers.cloud.prebuilt_info:
         team_id: "{{ cherryservers_team_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         plan: "{{ base_plan }}"
         region: "{{ region }}"
       register: prebuilt
@@ -31,7 +31,7 @@
     - name: Test info correct result
       cherryservers.cloud.prebuilt_info:
         team_id: "{{ cherryservers_team_id }}"
-        auth_token: "{{ cherryservers_api_key }}"
+        api_key: "{{ cherryservers_api_key }}"
         plan: "{{ base_plan }}"
         region: "{{ region }}"
       register: prebuilt

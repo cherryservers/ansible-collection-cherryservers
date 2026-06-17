@@ -64,20 +64,17 @@ author:
 EXAMPLES = r"""
 - name: Create a project
   cherryservers.cloud.project:
-    auth_token: "{{ auth_token }}"
     name: 'ans-test'
     team_id: 148226
   register: result
 
 - name: Update project
   cherryservers.cloud.project:
-    auth_token: "{{ auth_token }}"
     name: "ans-test-updated"
     id: "{{ result.cherryservers_project.id }}"
 
 - name: Delete project
   cherryservers.cloud.project:
-    auth_token: "{{ auth_token }}"
     id: 123456
     state: absent
 """

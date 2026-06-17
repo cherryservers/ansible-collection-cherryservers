@@ -37,9 +37,25 @@ class Module(ABC):
 def get_base_arg_spec() -> dict:
     """Return a dictionary with the base module argument spec."""
     return {
-        "auth_token": {
+        "api_key": {
             "type": "str",
             "no_log": True,
-            "fallback": (utils.env_fallback, ["CHERRY_AUTH_TOKEN", "CHERRY_AUTH_KEY"]),
+            "aliases": ["auth_token"],
+            "required": True,
+            "deprecated_aliases": [
+                {
+                    "name": "auth_token",
+                    "version": "4.0.0",
+                    "collection_name": "cherryservers.cloud",
+                },
+            ],
+            "fallback": (
+                utils.env_fallback,
+                [
+                    "CHERRY_API_KEY",
+                    "CHERRY_AUTH_TOKEN",
+                    "CHERRY_AUTH_KEY",
+                ],
+            ),
         },
     }

@@ -26,13 +26,18 @@ options:
     choices: ['cherryservers.cloud.cherryservers']
   auth_token:
     description:
+      - B(Deprecated:) this option is deprecated and will be removed in C(v4.0.0), use O(api_key) instead.
       - API authentication token for Cherry Servers public API.
-      - Can be supplied via E(CHERRY_AUTH_TOKEN) and E(CHERRY_AUTH_KEY) environment variables.
     type: str
-    required: true
     env:
       - name: CHERRY_AUTH_TOKEN
       - name: CHERRY_AUTH_KEY
+  api_key:
+    description:
+      - API key for Cherry Servers public API.
+    type: str
+    env:
+      - name: CHERRY_API_KEY
   project_id:
     description:
       - ID of the project to get servers from.
@@ -64,12 +69,12 @@ EXAMPLES = """
 # Get all servers from a project.
 plugin: cherryservers.cloud.cherryservers
 project_id: 123456
-auth_token: "my_api_key"
+api_key: "my_api_key"
 
 # Get all servers from a specified region and that have the specified tags.
 plugin: cherryservers.cloud.cherryservers
 project_id: 123456
-auth_token: "my_api_key"
+api_key: "my_api_key"
 region: "LT-Siauliai"
 tags:
   env: "test"
@@ -77,7 +82,7 @@ tags:
 # Use grouping.
 plugin: cherryservers.cloud.cherryservers
 project_id: 123456
-auth_token: "my_api_key"
+api_key: "my_api_key"
 keyed_groups:
   - key: cs_region
     prefix: region
@@ -110,14 +115,19 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         return valid
 
     def _get_inventory(self):
-        auth_token = self.get_option("auth_token")
-        auth_token = self.templar.template(auth_token)
+        api_key = self.get_option("api_key")
+        api_key = self.templar.template(api_key)
+
+        if not api_key:
+            # auth_token is deprecated
+            api_key = self.get_option("auth_token")
+            api_key = self.templar.template(api_key)
 
         project_id = self.get_option("project_id")
         project_id = self.templar.template(project_id)
 
         headers = {
-            "Authorization": f"Bearer {auth_token}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
 

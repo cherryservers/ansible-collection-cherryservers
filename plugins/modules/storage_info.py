@@ -60,19 +60,16 @@ author:
 EXAMPLES = r"""
 - name: Get a storage volume by ID
   cherryservers.cloud.storage_info:
-    auth_token: "{{ auth_token }}"
     id: 123456
   register: result
 
 - name: Get all project storage volumes
   cherryservers.cloud.storage_info:
-    auth_token: "{{ auth_token }}"
     project_id: 123456
   register: result
 
 - name: Get all project storage volumes, that are detached and have test description
   cherryservers.cloud.storage_info:
-    auth_token: "{{ auth_token }}"
     project_id: 123456
     state: "detached"
     description: "test"
