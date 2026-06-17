@@ -51,19 +51,16 @@ author:
 EXAMPLES = r"""
 - name: Get a project by ID
   cherryservers.cloud.project_info:
-    auth_token: "{{ auth_token }}"
     id: 123456
   register: result
 
 - name: Get all team projects
   cherryservers.cloud.project_info:
-    auth_token: "{{ auth_token }}"
     team_id: 123456
   register: result
 
 - name: Get all team projects that have BGP disabled
   cherryservers.cloud.project_info:
-    auth_token: "{{ auth_token }}"
     team_id: 123456
     bgp: False
   register: result

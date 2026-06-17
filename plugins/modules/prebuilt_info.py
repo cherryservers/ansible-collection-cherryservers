@@ -48,7 +48,6 @@ author:
 EXAMPLES = r"""
 - name: Get a plan variations for amd-epyc-9355
   cherryservers.cloud.prebuilt_info:
-    auth_token: "{{ auth_token }}"
     team_id: 123456
     plan: "amd-epyc-9355"
     region: "LT-Siauliai"

@@ -62,7 +62,6 @@ author:
 EXAMPLES = r"""
 - name: Create SSH key
   cherryservers.cloud.sshkey:
-    auth_token: "{{ auth_token }}"
     label: "SSH-test-key"
     key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYe+GfpsnLP02tfLOJWWFnGKJNpgrzLYE5VZhclrFy0 example@example.com"
     state: present
@@ -70,14 +69,12 @@ EXAMPLES = r"""
 
 - name: Update SSH key
   cherryservers.cloud.sshkey:
-    auth_token: "{{ auth_token }}"
     label: "SSH-test-key-updated"
     id: "{{ result.cherryservers_sshkey.id }}"
     state: present
 
 - name: Delete SSH key
   cherryservers.cloud.sshkey:
-    auth_token: "{{ auth_token }}"
     label: "SSH-test-key-updated"
     state: absent
 """
