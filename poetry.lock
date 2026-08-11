@@ -26,14 +26,14 @@ files = [
 
 [[package]]
 name = "ansible-core"
-version = "2.19.11rc1"
+version = "2.19.12"
 description = "Radically simple IT automation"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "ansible_core-2.19.11rc1-py3-none-any.whl", hash = "sha256:58223671c46c63d28e33bd538767d0975a1d2d63623752c26a264bcfb1494484"},
-    {file = "ansible_core-2.19.11rc1.tar.gz", hash = "sha256:5549e50993fde013dcbb8b37bed6987edc345beee9e22701fafb4861acf5c2b5"},
+    {file = "ansible_core-2.19.12-py3-none-any.whl", hash = "sha256:b6bbdf05952852ad908861d652a9009c8474f1fe9c63a77ec202979a329d7d99"},
+    {file = "ansible_core-2.19.12.tar.gz", hash = "sha256:cfb63b021558d5daddb1d0cd35886a5e1b18db2fc254d1f342e1527c62dac058"},
 ]
 
 [package.dependencies]
