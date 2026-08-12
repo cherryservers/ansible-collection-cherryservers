@@ -71,6 +71,14 @@ options:
               will always cause a re-install.
             - Mutually exclusive with O(image).
         type: str
+    persist_ipxe:
+        description:
+            - Persist the universal iPXE image between server boots.
+            - See the L(product docs,https://www.cherryservers.com/knowledge/docs/compute/configuration-management/ipxe#how-ipxe-works-with-cherry-servers)
+              for more on how Cherry Servers implements iPXE support.
+            - Requires O(ipxe).
+        type: bool
+        default: false
     os_partition_size:
         description:
             - Server OS partition size in GB.
@@ -402,6 +410,9 @@ class ServerModule(standard_module.StandardModule):
             params["image"] = "custom_ipxe_install"
             reinstall_req["ipxe"] = params["ipxe"]
 
+            if params["persist_ipxe"] is not None:
+                reinstall_req["persist_ipxe"] = params["persist_ipxe"]
+
         if params["ssh_keys"] is not None:
             params["ssh_keys"].sort()
         if resource["ssh_keys"] is not None:
@@ -470,6 +481,7 @@ class ServerModule(standard_module.StandardModule):
                 "prebuilt_id": params["prebuilt_id"],
                 "image": params["image"],
                 "ipxe": params["ipxe"],
+                "persist_ipxe": params["persist_ipxe"],
                 "os_partition_size": params["os_partition_size"],
                 "region": params["region"],
                 "hostname": params["hostname"],
@@ -510,6 +522,7 @@ class ServerModule(standard_module.StandardModule):
             "prebuilt_id": {"type": "int"},
             "image": {"type": "str"},
             "ipxe": {"type": "str", "no_log": True},
+            "persist_ipxe": {"type": "bool", "default": False},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
@@ -535,6 +548,9 @@ class ServerModule(standard_module.StandardModule):
                 ("state", "absent", ("id", "project_id"), True),
             ],
             mutually_exclusive=[("image", "ipxe")],
+            required_by={
+                "persist_ipxe": "ipxe",
+            },
         )
 
 

@@ -91,6 +91,23 @@
         that:
           - result.cherryservers_servers | list | count == 0
 
+    # There's no observable state change for persist_ipxe,
+    # so we just check that it's a valid option.
+    - name: Test create server with ipxe_persist in check_mode
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ plan }}"
+        ipxe: "{{ ipxe }}"
+        persist_ipxe: true
+      register: server
+      check_mode: true
+    - name: Verify server would be changed
+      ansible.builtin.assert:
+        that:
+          - server is changed
+
     - name: Test create server
       cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"

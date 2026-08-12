@@ -1,3 +1,5 @@
 minor_changes:
   - server - added the `ipxe` option to the server module, which allows provisioning and rebuilding
     servers with iPXE scripts.
+  - server - added the `persist_ipxe` option to the server module, which allows persisting the universal
+    iPXE image between server boots.
