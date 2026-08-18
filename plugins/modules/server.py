@@ -78,7 +78,6 @@ options:
               for more on how Cherry Servers implements iPXE support.
             - Requires O(ipxe).
         type: bool
-        default: false
     os_partition_size:
         description:
             - Server OS partition size in GB.
@@ -522,7 +521,7 @@ class ServerModule(standard_module.StandardModule):
             "prebuilt_id": {"type": "int"},
             "image": {"type": "str"},
             "ipxe": {"type": "str", "no_log": True},
-            "persist_ipxe": {"type": "bool", "default": False},
+            "persist_ipxe": {"type": "bool"},
             "os_partition_size": {"type": "int"},
             "region": {"type": "str"},
             "hostname": {"type": "str"},
