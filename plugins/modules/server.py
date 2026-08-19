@@ -389,6 +389,9 @@ class ServerModule(standard_module.StandardModule):
         self._server_manager.delete_server(resource["id"])
 
     def _get_update_requests(self, resource: dict) -> dict:
+        self._validate_base64("user_data")
+        self._validate_base64("ipxe")
+
         params = self._module.params
         req = {}
         basic_req = {}
@@ -455,17 +458,8 @@ class ServerModule(standard_module.StandardModule):
         if any(params[k] is None for k in ("project_id", "region", "plan")):
             self._module.fail_json(msg="missing required options for server creation.")
 
-        if params["user_data"] is not None:
-            try:
-                base64.b64decode(params["user_data"], validate=True)
-            except binascii.Error as e:
-                self._module.fail_json(msg=f"invalid user_data string: {e}")
-
-        if params["ipxe"] is not None:
-            try:
-                base64.b64decode(params["ipxe"], validate=True)
-            except binascii.Error as e:
-                self._module.fail_json(msg=f"invalid ipxe script: {e}")
+        self._validate_base64("user_data")
+        self._validate_base64("ipxe")
 
     def _perform_creation(self) -> dict:
         params = self._module.params
@@ -551,6 +545,13 @@ class ServerModule(standard_module.StandardModule):
                 "persist_ipxe": "ipxe",
             },
         )
+
+    def _validate_base64(self, param: str) -> None:
+        if self._module.params[param] is not None:
+            try:
+                base64.b64decode(self._module.params[param], validate=True)
+            except binascii.Error as e:
+                self._module.fail_json(msg=f"{param} not base64: {e}")
 
 
 def generate_password() -> str:

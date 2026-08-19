@@ -42,6 +42,22 @@
         name: "ansible-ipxe-server-test"
       register: project
 
+    - name: Test create server with non-base64 ipxe
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ project.cherryservers_project.id }}"
+        region: "{{ region }}"
+        plan: "{{ plan }}"
+        ipxe: "@"
+        image: "{{ image }}"
+      register: server
+      ignore_errors: true
+      check_mode: true
+    - name: Verify server creation failed
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
     - name: Test create server with both image and IPXE set.
       cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
@@ -198,6 +214,20 @@
       ansible.builtin.assert:
         that:
           - result.cherryservers_servers[0].image != "custom_ipxe_install"
+
+    - name: Test server re-install with non-base64 ipxe
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        id: "{{ server.cherryservers_server.id }}"
+        ipxe: "@"
+        allow_reinstall: true
+      register: result
+      ignore_errors: true
+      check_mode: true
+    - name: Verify server creation failed
+      ansible.builtin.assert:
+        that:
+          - result is failed
 
     - name: Test re-install server with iPXE
       cherryservers.cloud.server:
