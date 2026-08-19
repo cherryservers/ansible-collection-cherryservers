@@ -1,21 +1,38 @@
-# Ubuntu 24.04 installation script.
 ipxe: >
-  IyFpcHhlCiMgVWJ1bnR1IDI0LjA0IExUUyAoTm9ibGUpIG1hbnVhbCBuZXRib290LCBhbWQ2NApk
-  aGNwCgojIC0tLS0tLS0tLS0tLS0tLS0gTmV0d29yayBjb25maWcgLS0tLS0tLS0tLS0tLS0tLQoj
-  IFRoZSB2YXJpYWJsZXMgJHtJUF9BRERSRVNTfSwgJHtHQVRFV0FZfSwKIyAke05FVE1BU0t9LCBh
-  bmQgJHtJRkFDRX0gYXJlIGF1dG9tYXRpY2FsbHkKIyBwb3B1bGF0ZWQgZHVyaW5nIHNjcmlwdCBl
-  eGVjdXRpb24uCgpzZXQgY2xpZW50X2lwICR7SVBfQUREUkVTU30Kc2V0IGdhdGV3YXkgJHtHQVRF
-  V0FZfQpzZXQgbmV0bWFzayAke05FVE1BU0t9CnNldCBpZmFjZSAke0lGQUNFfQpzZXQgZG5zMSAx
-  MC4xMDAuMC41MwpzZXQgZG5zMiAxMC4xMDAuMC41NAojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-  LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCiMgU2VyaWVzIGRpcmVjdG9yeSBhbmQgZXhhY3Qg
-  SVNPIHZlcnNpb24Kc2V0IHNlcmllcyAgIDI0LjA0CnNldCBpc29fdmVyICAyNC4wNC4zCnNldCBh
-  cmNoICAgICBhbWQ2NAoKc2V0IGJhc2UgICAgICAgaHR0cDovL3JlbGVhc2VzLnVidW50dS5jb20v
-  JHtzZXJpZXN9CnNldCBrZXJuZWxfdXJsICR7YmFzZX0vbmV0Ym9vdC8ke2FyY2h9L2xpbnV4CnNl
-  dCBpbml0cmRfdXJsICR7YmFzZX0vbmV0Ym9vdC8ke2FyY2h9L2luaXRyZApzZXQgaXNvX3VybCAg
-  ICAke2Jhc2V9L3VidW50dS0ke2lzb192ZXJ9LWxpdmUtc2VydmVyLSR7YXJjaH0uaXNvCgplY2hv
-  IEJvb3RpbmcgVWJ1bnR1ICR7aXNvX3Zlcn0gKG1hbnVhbCBpbnN0YWxsKS4uLgppbWdmcmVlCmtl
-  cm5lbCAke2tlcm5lbF91cmx9IFwKICAgIGlwPWRoY3AgXAogICAgbW9kcHJvYmUuYmxhY2tsaXN0
-  PXJuZGlzX2hvc3QgXAogICAgdXJsPSR7aXNvX3VybH0gZnNjay5tb2RlPXNraXAKaW5pdHJkICR7
-  aW5pdHJkX3VybH0KYm9vdAo=
+  #!ipxe
+  # Ubuntu 24.04 LTS (Noble) manual netboot, amd64
+  dhcp
+
+  # ---------------- Network config ----------------
+  # The variables ${IP_ADDRESS}, ${GATEWAY},
+  # ${NETMASK}, and ${IFACE} are automatically
+  # populated during script execution.
+
+  set client_ip ${IP_ADDRESS}
+  set gateway ${GATEWAY}
+  set netmask ${NETMASK}
+  set iface ${IFACE}
+  set dns1 10.100.0.53
+  set dns2 10.100.0.54
+  # -------------------------------------------------
+
+  # Series directory and exact ISO version
+  set series   24.04
+  set iso_ver  24.04.3
+  set arch     amd64
+
+  set base       http://releases.ubuntu.com/${series}
+  set kernel_url ${base}/netboot/${arch}/linux
+  set initrd_url ${base}/netboot/${arch}/initrd
+  set iso_url    ${base}/ubuntu-${iso_ver}-live-server-${arch}.iso
+
+  echo Booting Ubuntu ${iso_ver} (manual install)...
+  imgfree
+  kernel ${kernel_url} \
+      ip=dhcp \
+      modprobe.blacklist=rndis_host \
+      url=${iso_url} fsck.mode=skip
+  initrd ${initrd_url}
+  boot
 
 image: "ubuntu_26_04_64bit"

@@ -64,7 +64,7 @@
         project_id: "{{ project.cherryservers_project.id }}"
         region: "{{ region }}"
         plan: "{{ plan }}"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
         image: "{{ image }}"
       register: server
       ignore_errors: true
@@ -89,7 +89,7 @@
         project_id: "{{ project.cherryservers_project.id }}"
         region: "{{ region }}"
         plan: "{{ plan }}"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
       register: server
       check_mode: true
     - name: Verify server would be changed
@@ -115,7 +115,7 @@
         project_id: "{{ project.cherryservers_project.id }}"
         region: "{{ region }}"
         plan: "{{ plan }}"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
         persist_ipxe: true
       register: server
       check_mode: true
@@ -130,7 +130,7 @@
         project_id: "{{ project.cherryservers_project.id }}"
         region: "{{ region }}"
         plan: "{{ plan }}"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
       register: server
     - name: Verify server is changed
       ansible.builtin.assert:
@@ -152,7 +152,7 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
         hostname: "reinstalled"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
       ignore_errors: true
       register: result
     - name: Verify server re-install failed
@@ -175,7 +175,7 @@
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
         hostname: "reinstalled"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
       register: reinstalled
       check_mode: true
     - name: Verify server reports as changed
@@ -233,7 +233,7 @@
       cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         id: "{{ server.cherryservers_server.id }}"
-        ipxe: "{{ ipxe }}"
+        ipxe: "{{ ipxe | ansible.builtin.b64encode }}"
         allow_reinstall: true
       register: reinstalled
     - name: Verify server reports as changed
