@@ -1,6 +1,22 @@
 ---
 - name: Run tests
   block:
+    - name: Test create server with non-base64 user_data
+      cherryservers.cloud.server:
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        region: "{{ server_region }}"
+        plan: "{{ server_plan }}"
+        hostname: "test-server-none"
+        user_data: "@"
+      register: server
+      ignore_errors: true
+      check_mode: true
+    - name: Verify server creation failed
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
     - name: create ssh key for server testing
       cherryservers.cloud.sshkey:
         label: "{{ fake_key_label }}"
@@ -20,8 +36,7 @@
       register: fip
     - name: verify create floating ip for server testing
       ansible.builtin.assert:
-        that:
-          fip is changed
+        that: fip is changed
 
     - name: test create server with check mode
       cherryservers.cloud.server:
@@ -34,8 +49,8 @@
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
-        extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: server
       check_mode: true
     - name: verify create server with check mode
@@ -66,8 +81,8 @@
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
         user_data: "{{ server_user_data }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
-        extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: server
     - name: verify create server
       ansible.builtin.assert:
@@ -101,9 +116,9 @@
         hostname: "{{ server_hostname }}"
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         image: "{{ server_image }}"
-        extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: result
       check_mode: true
     - name: verify server creation idempotency with check mode
@@ -120,9 +135,9 @@
         hostname: "{{ server_hostname }}"
         tags: "{{ server_tags }}"
         active_timeout: "{{ server_active_timeout }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         image: "{{ server_image }}"
-        extra_ip_addresses: [ "{{ fip.cherryservers_floating_ip.id }}" ]
+        extra_ip_addresses: ["{{ fip.cherryservers_floating_ip.id }}"]
       register: result
     - name: verify server creation idempotency
       ansible.builtin.assert:
@@ -135,7 +150,7 @@
         hostname: "{{ server_hostname }}"
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         user_data: "{{ server_user_data }}"
         image: "{{ server_reinstall_image }}"
       ignore_errors: true
@@ -151,7 +166,7 @@
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         user_data: "{{ server_user_data }}"
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
@@ -176,13 +191,27 @@
           - result.cherryservers_servers | list | count == 0
           - result is not changed
 
+    - name: Test re-install server with non-base64 user_data
+      cherryservers.cloud.server:
+        id: "{{ server.cherryservers_server.id }}"
+        auth_token: "{{ cherryservers_api_key }}"
+        project_id: "{{ cherryservers_project_id }}"
+        user_data: "@"
+      register: server
+      ignore_errors: true
+      check_mode: true
+    - name: Verify server re-install failed
+      ansible.builtin.assert:
+        that:
+          - server is failed
+
     - name: test reinstall server
       cherryservers.cloud.server:
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
         project_id: "{{ cherryservers_project_id }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         user_data: "{{ server_user_data }}"
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
@@ -214,7 +243,7 @@
         auth_token: "{{ cherryservers_api_key }}"
         hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
       register: result
@@ -230,7 +259,7 @@
         project_id: "{{ cherryservers_project_id }}"
         hostname: "{{ server_hostname }}"
         tags: "{{ server_update_tags }}"
-        ssh_keys: [ "{{ sshkey.cherryservers_sshkey.id }}" ]
+        ssh_keys: ["{{ sshkey.cherryservers_sshkey.id }}"]
         image: "{{ server_reinstall_image }}"
         allow_reinstall: "true"
       register: result
