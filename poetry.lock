@@ -45,19 +45,20 @@ resolvelib = ">=0.5.3,<2.0.0"
 
 [[package]]
 name = "antsibull-changelog"
-version = "0.34.0"
+version = "0.37.0"
 description = "Changelog tool for Ansible-core and Ansible collections"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["dev"]
 files = [
-    {file = "antsibull_changelog-0.34.0-py3-none-any.whl", hash = "sha256:a0126ffd8f314a469753a755555955373c2e93e215feb817fe7953556279556b"},
-    {file = "antsibull_changelog-0.34.0.tar.gz", hash = "sha256:0cb4528c01afc52539f1422eecd4c9cebb1953d051f53fb66315bdd964ce07d7"},
+    {file = "antsibull_changelog-0.37.0-py3-none-any.whl", hash = "sha256:c9fb0e7625b208ae4ea6fe3633bc0dbeb029bcd2a79da36a8ef7f5a256beadc4"},
+    {file = "antsibull_changelog-0.37.0.tar.gz", hash = "sha256:649105fe6ccd4f035688c4e2e580573660712af1e46f8c0d3d8891352ffc7e2e"},
 ]
 
 [package.dependencies]
 annotated-types = "*"
-antsibull-docutils = ">=1.0.0,<2.0.0"
+antsibull-docs-parser = ">=1.2.2,<2.0.0"
+antsibull-docutils = {version = ">=1.5.0,<2.0.0", extras = ["unicode"]}
 antsibull-fileutils = ">=1.0.0,<2.0.0"
 docutils = "*"
 packaging = "*"
@@ -75,27 +76,50 @@ toml = ["tomli ; python_version < \"3.11\""]
 typing = ["mypy", "types-docutils", "types-pyyaml", "types-toml"]
 
 [[package]]
+name = "antsibull-docs-parser"
+version = "1.2.3"
+description = "Python library for processing Ansible documentation markup"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "antsibull_docs_parser-1.2.3-py3-none-any.whl", hash = "sha256:66d593ad90d5499112cc3167fb178bfa787b496eb883102dfe12a4a4047406ba"},
+    {file = "antsibull_docs_parser-1.2.3.tar.gz", hash = "sha256:0d4835c615b6ae1b64d219d42260c2e1b58b6312809599e8e1a63adf7797e968"},
+]
+
+[package.extras]
+codeqa = ["antsibull-changelog", "flake8", "pylint", "reuse"]
+coverage = ["coverage[toml]"]
+dev = ["antsibull-changelog", "black", "click (<8.2.0)", "coverage[toml]", "flake8", "isort", "mypy", "nox", "pylint", "pyre-check (>=0.9.17)", "pytest", "pytest-cov", "pytest-error-for-skips", "pyyaml", "reuse"]
+formatters = ["black", "isort"]
+test = ["pytest", "pytest-cov", "pytest-error-for-skips", "pyyaml"]
+typing = ["click (<8.2.0)", "mypy", "pyre-check (>=0.9.17)"]
+
+[[package]]
 name = "antsibull-docutils"
-version = "1.2.1"
+version = "1.5.0"
 description = "Antsibull docutils helpers"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["dev"]
 files = [
-    {file = "antsibull_docutils-1.2.1-py3-none-any.whl", hash = "sha256:21aa61f9d07ad3e3764dab3c750e8e61cb59f113e60feb2cd2e092f45c02004c"},
-    {file = "antsibull_docutils-1.2.1.tar.gz", hash = "sha256:374631abc6b76dcde01908e809436c276871c9237a801d339a3d0b7ad2930889"},
+    {file = "antsibull_docutils-1.5.0-py3-none-any.whl", hash = "sha256:9f8f4293bc4d8a0e70f99f64c3c4c39d4953c32f817568222ac23f9ac6c2d351"},
+    {file = "antsibull_docutils-1.5.0.tar.gz", hash = "sha256:d325c2ce57cde5343bf50e647e2e7714718337748b1a9db5a1b529a2dd765603"},
 ]
 
 [package.dependencies]
 docutils = "*"
+graphemeu = {version = ">=0.8.0", optional = true, markers = "python_version < \"3.15\" and extra == \"unicode\""}
 
 [package.extras]
+all = ["graphemeu (>=0.8.0) ; python_version < \"3.15\""]
 codeqa = ["antsibull-changelog", "flake8 (>=3.8.0)", "pylint", "reuse"]
 coverage = ["coverage[toml]"]
 dev = ["antsibull-changelog", "black (>=24)", "coverage[toml]", "flake8 (>=3.8.0)", "isort", "mypy", "nox", "pylint", "pytest", "pytest-cov", "pytest-error-for-skips", "reuse", "types-docutils", "types-pyyaml", "types-toml"]
 formatters = ["black (>=24)", "isort"]
 test = ["pytest", "pytest-cov", "pytest-error-for-skips"]
 typing = ["mypy", "types-docutils", "types-pyyaml", "types-toml"]
+unicode = ["graphemeu (>=0.8.0) ; python_version < \"3.15\""]
 
 [[package]]
 name = "antsibull-fileutils"
@@ -399,6 +423,23 @@ files = [
     {file = "docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2"},
     {file = "docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f"},
 ]
+
+[[package]]
+name = "graphemeu"
+version = "0.11.0"
+description = "Unicode grapheme helpers"
+optional = false
+python-versions = ">=3.10"
+groups = ["dev"]
+markers = "python_version < \"3.15\""
+files = [
+    {file = "graphemeu-0.11.0-py3-none-any.whl", hash = "sha256:fd52b7e88ccc8d7523466be6694486eb14ae91b1cef4bb5aae37339543d09237"},
+    {file = "graphemeu-0.11.0.tar.gz", hash = "sha256:d03e0f625dcf8c6ff81e52d85bacad3f1ecf66c54df27a2dbd0544a0d02903d4"},
+]
+
+[package.extras]
+dev = ["pytest", "pytest-cov", "ruff"]
+docs = ["sphinx", "sphinx-autobuild"]
 
 [[package]]
 name = "isort"
@@ -1095,4 +1136,4 @@ typing-extensions = ">=4.12.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "fe22b55386b6634758dc8d2e03ad478b6e990abe7e6af886380fde97f2234a75"
+content-hash = "3d0187f52df307a76ec567d4f4f6353b308d0073a148386a667fbe488571f34c"
